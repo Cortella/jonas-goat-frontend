@@ -1,0 +1,208 @@
+/* Jonas Goat — design tokens */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --bg: oklch(0.16 0.006 240);
+  --bg-2: oklch(0.19 0.006 240);
+  --surface: oklch(0.22 0.007 240);
+  --surface-2: oklch(0.26 0.008 240);
+  --line: oklch(0.30 0.010 240);
+  --line-2: oklch(0.36 0.012 240);
+  --text: oklch(0.96 0.005 240);
+  --text-2: oklch(0.78 0.008 240);
+  --muted: oklch(0.58 0.010 240);
+  --faint: oklch(0.42 0.010 240);
+
+  /* Single accent: "edge" lime — signals value/EV+ */
+  --edge: oklch(0.88 0.17 125);
+  --edge-ink: oklch(0.30 0.10 130);
+  --edge-soft: oklch(0.88 0.17 125 / 0.12);
+
+  --win: oklch(0.78 0.16 155);
+  --loss: oklch(0.68 0.16 25);
+  --warn: oklch(0.82 0.15 80);
+  --info: oklch(0.74 0.12 240);
+
+  --r-1: 4px;
+  --r-2: 8px;
+  --r-3: 12px;
+  --r-4: 16px;
+
+  --shadow-1: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-2: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 8px 24px oklch(0 0 0 / 0.3);
+
+  --sans: 'Geist', -apple-system, system-ui, sans-serif;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+}
+
+/* Light theme — same accent, inverted neutrals */
+[data-theme="light"] {
+  --bg: oklch(0.985 0.002 240);
+  --bg-2: oklch(0.965 0.003 240);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.97 0.003 240);
+  --line: oklch(0.90 0.005 240);
+  --line-2: oklch(0.84 0.006 240);
+  --text: oklch(0.18 0.008 240);
+  --text-2: oklch(0.38 0.010 240);
+  --muted: oklch(0.54 0.010 240);
+  --faint: oklch(0.70 0.010 240);
+
+  /* "edge" reads better as a saturated forest in light mode */
+  --edge: oklch(0.62 0.17 145);
+  --edge-ink: oklch(0.99 0.005 240);
+  --edge-soft: oklch(0.62 0.17 145 / 0.10);
+
+  --win: oklch(0.58 0.17 155);
+  --loss: oklch(0.55 0.20 25);
+  --warn: oklch(0.62 0.16 75);
+  --info: oklch(0.56 0.14 240);
+
+  --shadow-1: 0 1px 0 oklch(0 0 0 / 0.03) inset, 0 1px 2px oklch(0 0 0 / 0.04);
+  --shadow-2: 0 1px 0 oklch(0 0 0 / 0.02) inset, 0 8px 24px oklch(0 0 0 / 0.06);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'ss01', 'cv11';
+}
+
+/* Typography helpers */
+.t-eyebrow { font: 500 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.t-num { font-family: var(--mono); font-feature-settings: 'tnum'; }
+.t-serif { font-family: var(--serif); }
+.t-italic { font-style: italic; }
+
+/* Surface helpers */
+.surface { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); }
+.surface-2 { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-3); }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: var(--r-2);
+  font: 500 13px/1 var(--sans); cursor: pointer; border: 1px solid transparent;
+  transition: 120ms ease;
+}
+.btn-edge { background: var(--edge); color: var(--edge-ink); border-color: oklch(0.92 0.18 125); }
+.btn-edge:hover { background: oklch(0.92 0.17 125); }
+.btn-ghost { background: transparent; color: var(--text); border-color: var(--line-2); }
+.btn-ghost:hover { background: var(--surface); }
+.btn-solid { background: var(--surface-2); color: var(--text); border-color: var(--line-2); }
+.btn-sm { padding: 7px 10px; font-size: 12px; }
+
+/* Tags */
+.tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px; border-radius: 999px;
+  font: 500 11px/1 var(--mono); letter-spacing: 0.04em;
+  border: 1px solid var(--line-2); color: var(--text-2);
+  background: var(--surface);
+}
+.tag-edge { background: var(--edge-soft); color: var(--edge); border-color: oklch(0.88 0.17 125 / 0.4); }
+.tag-win { background: oklch(0.78 0.16 155 / 0.12); color: var(--win); border-color: oklch(0.78 0.16 155 / 0.3); }
+.tag-loss { background: oklch(0.68 0.16 25 / 0.12); color: var(--loss); border-color: oklch(0.68 0.16 25 / 0.3); }
+.tag-warn { background: oklch(0.82 0.15 80 / 0.12); color: var(--warn); border-color: oklch(0.82 0.15 80 / 0.3); }
+
+/* Dot */
+.dot { display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: var(--edge); }
+.dot-pulse { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* Grids */
+.row { display: flex; }
+.col { display: flex; flex-direction: column; }
+
+/* Inputs */
+.input {
+  background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: var(--r-2); padding: 10px 12px; color: var(--text);
+  font: 400 13px/1 var(--sans); width: 100%;
+}
+.input:focus { outline: 1px solid var(--edge); border-color: var(--edge); }
+
+/* Hairline divider */
+hr.hl { border: 0; border-top: 1px solid var(--line); margin: 0; }
+
+/* League logos: simple round badges with monogram */
+.league-mono {
+  width: 22px; height: 22px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font: 600 10px var(--mono); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+
+/* Team crest placeholder */
+.crest {
+  width: 26px; height: 26px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font: 600 10px var(--mono); color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+
+/* SVG strokes */
+.s-line { stroke: var(--line); }
+.s-line2 { stroke: var(--line-2); }
+.s-edge { stroke: var(--edge); }
+.s-text { stroke: var(--text-2); }
+
+/* DC overrides — hide focus chrome inside artboards is fine */
+.dc-artboard { background: var(--bg) !important; }
+
+/* Terms / privacy / long-form prose */
+.terms-prose ul { margin: 8px 0 8px 20px; padding: 0; }
+.terms-prose li { margin: 4px 0; }
+.terms-prose a { color: var(--edge); text-decoration: underline; }
+.terms-prose strong { color: var(--text); }
+
+/* Predictions list rows — clickable hover affordance */
+.pred-row {
+  display: grid;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  transition: background 120ms ease;
+}
+.pred-row:last-child { border-bottom: 0; }
+.pred-row:hover { background: var(--surface-2); }
+
+/* Comparator: subtle hover for each match block */
+.comparator-match { transition: background 120ms ease; }
+.comparator-match:last-child { border-bottom: 0; }
+.comparator-match:hover { background: var(--surface-2); }
+
+/* Comparator: clickable odd cells (affiliate links) */
+.odds-cell { transition: transform 80ms ease; }
+.odds-cell:hover { transform: scale(1.04); }
+.odds-cell:hover > span { background: var(--surface-2); }
+
+/* World Cup: subtle hover on group rows */
+.wc-group-row { transition: background 120ms ease; }
+.wc-group-row:last-child { border-bottom: 0; }
+.wc-group-row:hover { background: var(--surface-2); }
+
+/* Landing — section spacing utilities + hero accent halo */
+.landing-section { padding: 80px 48px; max-width: 1280px; margin: 0 auto; }
+.landing-section.tight { padding: 56px 48px; }
+@media (max-width: 768px) {
+  .landing-section { padding: 56px 20px; }
+  .landing-section.tight { padding: 40px 20px; }
+}
+.landing-halo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 600px 400px at 30% 20%, oklch(0.88 0.17 125 / 0.10), transparent 70%),
+    radial-gradient(ellipse 500px 400px at 80% 60%, oklch(0.74 0.12 240 / 0.08), transparent 70%);
+  z-index: 0;
+}

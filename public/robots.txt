@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /onboarding
+Disallow: /bankroll
+Disallow: /alertas
+Disallow: /afiliados
+
+Sitemap: https://jonasgoat.com.br/sitemap.xml

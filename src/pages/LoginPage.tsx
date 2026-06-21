@@ -71,6 +71,11 @@ export function LoginPage() {
               autoComplete="current-password"
             />
           </label>
+          <div style={{ textAlign: 'right', marginTop: -4 }}>
+            <Link to="/esqueci-senha" style={{ color: 'var(--text-2)', fontSize: 12 }}>
+              Esqueci minha senha
+            </Link>
+          </div>
 
           {error && (
             <div style={{ padding: 10, borderRadius: 6, background: 'oklch(0.68 0.16 25 / 0.1)', border: '1px solid oklch(0.68 0.16 25 / 0.3)', color: 'var(--loss)', fontSize: 12 }}>

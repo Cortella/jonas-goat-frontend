@@ -36,6 +36,8 @@ import { AdminSecurityPage } from './pages/AdminSecurityPage';
 import { AdminFinancePage } from './pages/AdminFinancePage';
 import { ChangelogPage } from './pages/ChangelogPage';
 import { ConfirmEmailPage } from './pages/ConfirmEmailPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { EmailConfirmBanner } from './components/EmailConfirmBanner';
 import { AdminSupportPage } from './pages/AdminSupportPage';
 import { SupportPage } from './pages/SupportPage';
@@ -55,6 +57,8 @@ export function App() {
         <Route path="/termos" element={<TermsPage />} />
         <Route path="/atualizacoes" element={<ChangelogPage />} />
         <Route path="/confirmar-email" element={<ConfirmEmailPage />} />
+        <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+        <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
         <Route path="/predictions" element={<PredictionsPage />} />
         <Route path="/predictions/:matchId" element={<MatchDetailPage />} />
         <Route path="/partida-ao-vivo/:matchId" element={<LiveMatchPage />} />

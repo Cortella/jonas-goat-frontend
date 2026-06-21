@@ -833,6 +833,10 @@ export const api = {
     get<{ ok: boolean; email: string }>(`/api/auth/confirm-email?token=${encodeURIComponent(token)}`),
   resendConfirmation: () =>
     post<{ ok: boolean; already?: boolean }>('/api/auth/resend-confirmation', {}),
+  forgotPassword: (email: string) =>
+    post<{ ok: boolean }>('/api/auth/forgot-password', { email }),
+  resetPassword: (token: string, password: string) =>
+    post<{ ok: boolean }>('/api/auth/reset-password', { token, password }),
 
   // preferences
   getPreferences: () => get<Preferences>('/api/preferences'),

@@ -731,7 +731,20 @@ export interface WCAnalysis {
   probs: { home: number; draw: number; away: number };
   expected_goals: { home: number; away: number };
   likely_score: string;
-  markets: { over_2_5: number; btts_yes: number };
+  markets: {
+    over_0_5: number;
+    over_1_5: number;
+    over_2_5: number;
+    over_3_5: number;
+    under_1_5: number;
+    under_2_5: number;
+    under_3_5: number;
+    btts_yes: number;
+    btts_no: number;
+    dc_1x: number;
+    dc_12: number;
+    dc_x2: number;
+  };
   strength: { home: WCTeamForm; away: WCTeamForm };
   h2h: {
     total: number;

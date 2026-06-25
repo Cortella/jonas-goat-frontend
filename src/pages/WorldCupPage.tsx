@@ -514,6 +514,25 @@ function ModalBody({ a }: Readonly<{ a: WCAnalysis }>) {
           <Metric label={`Odd justa ${m.away.name.slice(0, 3).toUpperCase()}`} value={a.strength.away.fair_odds ?? '—'} />
         </div>
 
+        {/* Outros mercados do mesmo jogo */}
+        <div className="t-eyebrow" style={{ marginTop: 24, marginBottom: 10 }}>Outros mercados (mesmo jogo)</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+          <MarketRow label="Mais de 1.5 gols" p={a.markets.over_1_5} />
+          <MarketRow label="Menos de 1.5 gols" p={a.markets.under_1_5} />
+          <MarketRow label="Mais de 2.5 gols" p={a.markets.over_2_5} />
+          <MarketRow label="Menos de 2.5 gols" p={a.markets.under_2_5} />
+          <MarketRow label="Mais de 3.5 gols" p={a.markets.over_3_5} />
+          <MarketRow label="Menos de 3.5 gols" p={a.markets.under_3_5} />
+          <MarketRow label="Ambas marcam — Sim" p={a.markets.btts_yes} />
+          <MarketRow label="Ambas marcam — Não" p={a.markets.btts_no} />
+          <MarketRow label={`${m.home.name} ou empate`} p={a.markets.dc_1x} />
+          <MarketRow label={`${m.away.name} ou empate`} p={a.markets.dc_x2} />
+          <MarketRow label="Sai do empate (casa ou fora)" p={a.markets.dc_12} />
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>
+          Probabilidades do modelo + odd justa (1/prob). Se a odd da casa for maior que a justa, há valor.
+        </p>
+
         {/* Palpite de valor */}
         <div
           style={{
@@ -589,6 +608,26 @@ function Metric({ label, value }: Readonly<{ label: string; value: string | numb
     <div style={{ background: 'var(--bg-2)', borderRadius: 8, padding: '10px 12px' }}>
       <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{label}</div>
       <div style={{ fontSize: 15, fontWeight: 600, fontFamily: 'var(--mono)' }}>{value}</div>
+    </div>
+  );
+}
+
+/** Linha de mercado: rótulo + probabilidade do modelo + odd justa (1/prob).
+ *  `p` é uma porcentagem (0–100), como o backend retorna. */
+function MarketRow({ label, p }: Readonly<{ label: string; p: number }>) {
+  const fair = p > 0 ? (100 / p).toFixed(2) : '—';
+  return (
+    <div
+      style={{
+        background: 'var(--bg-2)', borderRadius: 8, padding: '8px 12px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+      }}
+    >
+      <span style={{ fontSize: 12, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+      <span style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontFamily: 'var(--mono)', flexShrink: 0 }}>
+        <strong style={{ fontSize: 13 }}>{Math.round(p)}%</strong>
+        <span style={{ fontSize: 11, color: 'var(--muted)' }}>@{fair}</span>
+      </span>
     </div>
   );
 }

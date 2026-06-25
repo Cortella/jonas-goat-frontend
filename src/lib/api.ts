@@ -1168,6 +1168,14 @@ export interface AdminStats {
   gross_revenue_brl: number;
   users_by_plan: Array<{ plan: string; n: number }>;
   active_subs_by_plan: Array<{ plan: string; n: number }>;
+  auto_debit: {
+    active_subscriptions: number;
+    paying_users: number;
+    card_recurring_subs: number;
+    card_recurring_users: number;
+    pct_of_active_subs: number;
+    pct_of_paying_users: number;
+  };
   signups_30d: Array<{ day: string; n: number }>;
   revenue_90d: Array<{ day: string; total: number }>;
   pricing: Record<string, { monthly: number; yearly?: number; lifetime?: number }>;

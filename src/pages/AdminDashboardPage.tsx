@@ -40,7 +40,7 @@ function DashboardBody({ stats }: { stats: AdminStats }) {
 
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 24 }}>
         <div className="surface" style={{ padding: 20 }}>
           <Stat label="MRR" value={BRL(stats.mrr_brl)} sub="receita mensal recorrente" color="var(--edge)" />
         </div>
@@ -55,6 +55,14 @@ function DashboardBody({ stats }: { stats: AdminStats }) {
         </div>
         <div className="surface" style={{ padding: 20 }}>
           <Stat label="Churn 30d" value={PCT(stats.churn_rate_30d)} sub="cancelados / ativos" color={stats.churn_rate_30d > 0.05 ? 'var(--loss)' : 'var(--text)'} />
+        </div>
+        <div className="surface" style={{ padding: 20, border: '1px solid oklch(0.88 0.17 125 / 0.4)' }}>
+          <Stat
+            label="Débito automático"
+            value={PCT(stats.auto_debit.pct_of_paying_users)}
+            sub={`${stats.auto_debit.card_recurring_users}/${stats.auto_debit.paying_users} clientes · cartão recorrente`}
+            color="var(--edge)"
+          />
         </div>
       </div>
 

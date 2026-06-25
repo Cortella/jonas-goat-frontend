@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -78,6 +79,7 @@ function ReviewCard({ r }: Readonly<{ r: PublicReview }>) {
 }
 
 function ReviewForm() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const qc = useQueryClient();
   const mine = useQuery({ queryKey: ['my-review'], queryFn: () => api.myReview(), enabled: !!user });
@@ -116,8 +118,8 @@ function ReviewForm() {
   if (!user) {
     return (
       <div className="surface" style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--text-2)' }}>
-        Já é assinante?{' '}
-        <Link to="/login" style={{ color: 'var(--edge)' }}>Entre</Link> para deixar sua avaliação.
+        {t('reviews.login_prompt')}{' '}
+        <Link to="/login" style={{ color: 'var(--edge)' }}>{t('reviews.login_cta')}</Link> {t('reviews.login_suffix')}
       </div>
     );
   }
@@ -126,8 +128,8 @@ function ReviewForm() {
   if (user.plan !== 'pro' && user.plan !== 'founders') {
     return (
       <div className="surface" style={{ padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--text-2)' }}>
-        Avaliações são exclusivas para assinantes.{' '}
-        <Link to="/precos" style={{ color: 'var(--edge)' }}>Conheça os planos</Link>.
+        {t('reviews.subscribers_only')}{' '}
+        <Link to="/precos" style={{ color: 'var(--edge)' }}>{t('reviews.see_plans')}</Link>.
       </div>
     );
   }
@@ -141,30 +143,30 @@ function ReviewForm() {
       style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}
       onSubmit={(e) => { e.preventDefault(); if (!tooShort) submit.mutate(); }}
     >
-      <strong style={{ fontSize: 14 }}>{mine.data ? 'Edite sua avaliação' : 'Deixe sua avaliação'}</strong>
+      <strong style={{ fontSize: 14 }}>{mine.data ? t('reviews.form_title_edit') : t('reviews.form_title_new')}</strong>
       <StarPicker value={rating} onChange={(v) => { setRating(v); setDone(false); }} />
       <textarea
         className="input"
         value={comment}
         onChange={(e) => { setComment(e.target.value); setDone(false); }}
-        placeholder="Conte como o Jonas Goat tem te ajudado (mín. 10 caracteres)…"
+        placeholder={t('reviews.placeholder')}
         maxLength={600}
         rows={3}
         style={{ resize: 'vertical' }}
       />
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <button type="submit" className="btn btn-edge btn-sm" disabled={submit.isPending || tooShort}>
-          {submit.isPending ? 'Enviando…' : mine.data ? 'Atualizar' : 'Publicar'}
+          {submit.isPending ? t('reviews.sending') : mine.data ? t('reviews.update') : t('reviews.publish')}
         </button>
         {mine.data && (
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => remove.mutate()} disabled={remove.isPending}>
-            Excluir
+            {t('reviews.delete')}
           </button>
         )}
-        {status === 'pending' && <span style={{ fontSize: 11, color: 'var(--warn)' }}>Em moderação — aparece após aprovação.</span>}
-        {status === 'approved' && !done && <span style={{ fontSize: 11, color: 'var(--win)' }}>Publicada ✓</span>}
-        {status === 'rejected' && <span style={{ fontSize: 11, color: 'var(--loss)' }}>Não aprovada. Edite e reenvie.</span>}
-        {done && status !== 'approved' && <span style={{ fontSize: 11, color: 'var(--win)' }}>Recebida! Vai passar por moderação.</span>}
+        {status === 'pending' && <span style={{ fontSize: 11, color: 'var(--warn)' }}>{t('reviews.status_pending')}</span>}
+        {status === 'approved' && !done && <span style={{ fontSize: 11, color: 'var(--win)' }}>{t('reviews.status_approved')}</span>}
+        {status === 'rejected' && <span style={{ fontSize: 11, color: 'var(--loss)' }}>{t('reviews.status_rejected')}</span>}
+        {done && status !== 'approved' && <span style={{ fontSize: 11, color: 'var(--win)' }}>{t('reviews.status_received')}</span>}
         {submit.isError && <span style={{ fontSize: 11, color: 'var(--loss)' }}>{(submit.error as Error).message}</span>}
       </div>
     </form>
@@ -172,6 +174,7 @@ function ReviewForm() {
 }
 
 export function ReviewsSection() {
+  const { t } = useTranslation();
   const { data } = useQuery({ queryKey: ['reviews'], queryFn: () => api.reviews() });
   const count = data?.count ?? 0;
   const average = data?.average ?? null;
@@ -210,12 +213,12 @@ export function ReviewsSection() {
         </Helmet>
       )}
       <SectionHeader
-        eyebrow="Avaliações"
-        title="O que os assinantes dizem"
+        eyebrow={t('reviews.eyebrow')}
+        title={t('reviews.title')}
         sub={
           count > 0 && average
-            ? `${average.toFixed(1)} de 5 · ${count} avaliação${count > 1 ? 'ões' : ''} de assinantes reais`
-            : 'Seja o primeiro a avaliar a plataforma.'
+            ? t('reviews.sub_count', { average: average.toFixed(1), count })
+            : t('reviews.sub_empty')
         }
         action={
           count > 0 && average ? (

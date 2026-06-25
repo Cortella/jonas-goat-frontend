@@ -214,5 +214,27 @@
     "terms": "Termos",
     "plans": "Planos",
     "methodology": "Metodologia"
+  },
+  "reviews": {
+    "eyebrow": "Avaliações",
+    "title": "O que os assinantes dizem",
+    "sub_empty": "Seja o primeiro a avaliar a plataforma.",
+    "sub_count": "{{average}} de 5 · {{count}} avaliações de assinantes reais",
+    "login_prompt": "Já é assinante?",
+    "login_cta": "Entre",
+    "login_suffix": "para deixar sua avaliação.",
+    "subscribers_only": "Avaliações são exclusivas para assinantes.",
+    "see_plans": "Conheça os planos",
+    "form_title_edit": "Edite sua avaliação",
+    "form_title_new": "Deixe sua avaliação",
+    "placeholder": "Conte como o Jonas Goat tem te ajudado (mín. 10 caracteres)…",
+    "sending": "Enviando…",
+    "update": "Atualizar",
+    "publish": "Publicar",
+    "delete": "Excluir",
+    "status_pending": "Em moderação — aparece após aprovação.",
+    "status_approved": "Publicada ✓",
+    "status_rejected": "Não aprovada. Edite e reenvie.",
+    "status_received": "Recebida! Vai passar por moderação."
   }
 }

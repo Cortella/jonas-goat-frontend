@@ -40,6 +40,7 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { EmailConfirmBanner } from './components/EmailConfirmBanner';
 import { AdminSupportPage } from './pages/AdminSupportPage';
+import { AdminReviewsPage } from './pages/AdminReviewsPage';
 import { SupportPage } from './pages/SupportPage';
 import { SupportBubble } from './components/SupportChat';
 
@@ -235,6 +236,14 @@ export function App() {
           element={
             <AdminRoute>
               <AdminSupportPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/avaliacoes"
+          element={
+            <AdminRoute>
+              <AdminReviewsPage />
             </AdminRoute>
           }
         />

@@ -11,6 +11,7 @@ import {
   Dot,
 } from '../components/atoms';
 import { Seo } from '../components/Seo';
+import { ReviewsSection } from '../components/ReviewsSection';
 import { api } from '../lib/api';
 import { LanguageSelector } from '../components/LanguageSelector';
 import type { Prediction } from '../lib/types';
@@ -331,6 +332,9 @@ export function LandingPage() {
           />
         </div>
       </section>
+
+      {/* ─── Avaliações ───────────────────────────────────────────── */}
+      <ReviewsSection />
 
       {/* ─── FAQ ──────────────────────────────────────────────────── */}
       <section id="faq" className="landing-section" style={{ borderTop: '1px solid var(--line)' }}>

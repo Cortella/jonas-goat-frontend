@@ -803,6 +803,43 @@ export interface CurrencyPriceInput {
   enabled?: boolean;
 }
 
+// ─── Reviews / avaliações ──────────────────────────────────────────────────
+export type ReviewStatus = 'pending' | 'approved' | 'rejected';
+
+export interface PublicReview {
+  id: number;
+  rating: number;
+  comment: string;
+  author: string;
+  avatar_url: string | null;
+  created_at: string;
+}
+
+export interface ReviewsResponse {
+  count: number;
+  average: number | null;
+  reviews: PublicReview[];
+}
+
+export interface OwnReview {
+  id: number;
+  rating: number;
+  comment: string;
+  status: ReviewStatus;
+  created_at: string;
+}
+
+export interface AdminReview {
+  id: number;
+  rating: number;
+  comment: string;
+  status: ReviewStatus;
+  created_at: string;
+  author: string;
+  email: string;
+  avatar_url: string | null;
+}
+
 // ─── API surface ──────────────────────────────────────────────────────────
 export const api = {
   status: () => get<SystemStatus>('/api/status'),
@@ -1091,6 +1128,19 @@ export const api = {
     const suffix = qs ? '?' + qs : '';
     return get<AccessLogsResponse>(`/api/admin/access-logs${suffix}`);
   },
+
+  // reviews / avaliações
+  reviews: () => get<ReviewsResponse>('/api/reviews'),
+  myReview: () => get<OwnReview | null>('/api/reviews/me'),
+  submitReview: (body: { rating: number; comment: string }) =>
+    post<OwnReview>('/api/reviews', body),
+  deleteMyReview: () => del<void>('/api/reviews/me'),
+  adminListReviews: (status?: ReviewStatus) => {
+    const qs = status ? `?status=${status}` : '';
+    return get<AdminReview[]>(`/api/admin/reviews${qs}`);
+  },
+  adminModerateReview: (id: number, action: 'approve' | 'reject') =>
+    post<{ id: number; status: ReviewStatus }>(`/api/admin/reviews/${id}/moderate`, { action }),
 };
 
 // ─── Admin types ──────────────────────────────────────────────────────────

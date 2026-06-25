@@ -36,7 +36,7 @@ export function TermsPage() {
           Termos de Uso
         </h1>
         <p style={{ color: 'var(--text-2)', fontSize: 13, marginBottom: 32 }}>
-          Última atualização: maio de 2026 · documento em português brasileiro.
+          Última atualização: junho de 2026 · documento em português brasileiro.
         </p>
 
         <div
@@ -141,14 +141,49 @@ export function TermsPage() {
           A assinatura é cobrada de forma recorrente (mensal ou anual) ou em pagamento único
           (vitalício). O pagamento é processado por gateway externo (Stripe/Pix). Você pode
           cancelar a qualquer momento; o acesso permanece até o fim do período pago.
-          Reembolso integral está disponível nos primeiros 7 dias após a primeira cobrança.
+          Reembolso integral está disponível nos primeiros 7 dias após a primeira cobrança, em
+          observância ao direito de arrependimento previsto no art. 49 do Código de Defesa do
+          Consumidor (CDC) para contratações feitas pela internet.
         </Section>
 
-        <Section title="8. Privacidade">
-          Coletamos apenas o necessário para operar a plataforma: email, nome (opcional), histórico
-          de apostas registradas pelo próprio usuário, preferências e dados de afiliação. Não
-          vendemos dados a terceiros. Detalhes completos serão publicados em página de privacidade
-          dedicada.
+        <Section title="8. Privacidade e proteção de dados (LGPD)">
+          Tratamos seus dados pessoais em conformidade com a Lei nº 13.709/2018 (LGPD), seguindo o
+          princípio da minimização — coletamos apenas o necessário para operar a plataforma.
+          <br />
+          <br />
+          <strong>O que coletamos:</strong>
+          <ul>
+            <li>
+              Cadastro: email, apelido (opcional), nome completo, <strong>número do documento</strong>{' '}
+              (CPF para residentes no Brasil, ou documento equivalente para outros países), data de
+              nascimento e país.
+            </li>
+            <li>
+              Pagamento: tratado pelo gateway externo (Stripe/Pix); o número do documento pode ser
+              confirmado no checkout para emissão da cobrança.
+            </li>
+            <li>
+              Uso: plataformas de aposta preferidas, histórico que você mesmo registrar, preferências
+              e dados do programa de afiliados.
+            </li>
+            <li>Foto de perfil (avatar), apenas se você optar por enviá-la.</li>
+          </ul>
+          <strong>O que NÃO coletamos:</strong> não exigimos nem armazenamos fotos ou imagens de
+          documentos de identidade (RG, CNH, etc.). O número do documento é suficiente para nossas
+          finalidades.
+          <br />
+          <br />
+          <strong>Bases legais (art. 7º da LGPD):</strong> execução do contrato de assinatura,
+          cumprimento de obrigações legais e fiscais, verificação de maioridade (+18) e legítimo
+          interesse na prevenção a fraudes. Não vendemos seus dados a terceiros.
+          <br />
+          <br />
+          <strong>Seus direitos (art. 18 da LGPD):</strong> você pode solicitar acesso, correção,
+          exclusão, portabilidade e revogar consentimento a qualquer momento, escrevendo para{' '}
+          <a href="mailto:contato@jonasgoat.com" style={{ color: 'var(--edge)' }}>
+            contato@jonasgoat.com
+          </a>
+          . Mantemos os dados apenas pelo tempo necessário às finalidades acima ou exigido por lei.
         </Section>
 
         <Section title="9. Propriedade intelectual">
@@ -158,10 +193,17 @@ export function TermsPage() {
         </Section>
 
         <Section title="10. Conformidade legal (Brasil)">
-          A plataforma opera em conformidade com a Lei nº 14.790/2023, que regulamenta apostas de
-          quota fixa no Brasil. Reforçamos: <strong>nós não operamos apostas</strong>. Bookmakers
-          licenciados pela SPA / Ministério da Fazenda são quem opera apostas — somos um produto
-          de informação, paralelo, sem qualquer relação operacional com casas de apostas.
+          O Jonas Goat <strong>não é uma casa de apostas nem operador de apostas de quota fixa</strong>.
+          Por isso, não somos licenciados pela SPA / Ministério da Fazenda — e não precisamos ser. A
+          Lei nº 14.790/2023 regulamenta os <strong>operadores</strong> de apostas; ela se aplica às
+          casas onde você eventualmente aposta, não a este serviço de informação e análise.
+          <br />
+          <br />
+          O número do documento (CPF) que solicitamos serve exclusivamente para processar pagamentos,
+          cumprir obrigações fiscais e confirmar que você tem 18 anos ou mais — e{' '}
+          <strong>não</strong> como verificação de identidade (KYC) de operador de apostas. Este
+          contrato é regido pela legislação brasileira; relações de consumo observam o Código de
+          Defesa do Consumidor.
         </Section>
 
         <Section title="11. Alterações dos termos">

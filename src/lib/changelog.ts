@@ -78,13 +78,11 @@ export const CHANGELOG: PatchEntry[] = [
     version: '1.2.0',
     date: '2026-05-09',
     title: 'Cadastro completo (Lei 14.790/23)',
-    highlight: 'Conformidade legal com CPF, endereço, plataformas de aposta e termos obrigatórios.',
+    highlight: 'Cadastro com CPF, data de nascimento (≥18), plataformas de aposta e aceite de termos.',
     changes: [
-      { kind: 'feature', text: 'Cadastro completo com nome, CPF (validado por mod 11), data de nascimento (≥18) e endereço completo.' },
+      { kind: 'feature', text: 'Cadastro com nome, CPF (validado por mod 11) e data de nascimento (≥18).' },
       { kind: 'feature', text: 'Multi-select de plataformas de aposta usadas pelo usuário.' },
       { kind: 'feature', text: 'Aceite explícito dos termos de uso com versão registrada por usuário.' },
-      { kind: 'feature', text: 'Foto de identidade opcional via upload anti-script.' },
-      { kind: 'improvement', text: 'Preenchimento automático do endereço pelo CEP via ViaCEP.' },
     ],
   },
   {

@@ -385,13 +385,13 @@ function TermsBox({ onScrolledToEnd }: Readonly<{ onScrolledToEnd: () => void }>
       <p><strong>4. Jogo responsável.</strong> Apostas envolvem risco de perda total. Aposte só o que está disposto a perder. Não use dinheiro de salário, aluguel ou empréstimos. Defina um teto mensal. Em caso de descontrole, procure <a href="https://www.jogadoresanonimos.com.br/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--edge)' }}>Jogadores Anônimos</a>. <strong>Apenas maiores de 18 anos.</strong></p>
       <p><strong>5. Conta.</strong> Você é responsável pela senha. Notifique-nos em caso de uso não autorizado. Reservamo-nos o direito de suspender contas que violem os termos.</p>
       <p><strong>6. Programa de afiliados.</strong> Nível único. O afiliado ganha comissão sobre cobranças do convidado direto.</p>
-      <p><strong>7. Assinatura e reembolso.</strong> Cobrança recorrente (mensal/anual) ou única (vitalício) via gateway externo. Reembolso integral em 7 dias após primeira cobrança.</p>
-      <p><strong>8. Privacidade.</strong> Coletamos email, nome, dados de identificação (CPF, endereço) exigidos pela Lei 14.790/23, histórico que você registrar e dados de afiliação. Não vendemos dados.</p>
+      <p><strong>7. Assinatura e reembolso.</strong> Cobrança recorrente (mensal/anual) ou única (vitalício) via gateway externo. Reembolso integral em 7 dias após a primeira cobrança — direito de arrependimento do art. 49 do CDC.</p>
+      <p><strong>8. Privacidade (LGPD).</strong> Tratamos dados conforme a Lei 13.709/18. Coletamos email, nome, número do documento (CPF ou equivalente), data de nascimento (verificação +18), país, plataformas preferidas e dados de afiliação. <strong>Não coletamos fotos/imagens de documentos.</strong> Bases legais: contrato, obrigação legal/fiscal, +18 e antifraude. Você pode acessar, corrigir ou excluir seus dados em contato@jonasgoat.com. Não vendemos dados.</p>
       <p><strong>9. Propriedade intelectual.</strong> Modelos, dados agregados e software são propriedade do Jonas Goat. Proibida redistribuição, scraping ou revenda.</p>
-      <p><strong>10. Conformidade legal (Brasil).</strong> Operamos em conformidade com a Lei 14.790/2023. Bookmakers licenciados pela SPA / Ministério da Fazenda é quem opera apostas — somos um produto de informação paralelo.</p>
+      <p><strong>10. Conformidade legal (Brasil).</strong> O Jonas Goat não é casa de apostas nem operador — não é licenciado pela SPA/MF e não precisa ser. A Lei 14.790/2023 regula os operadores, não este serviço de informação. O número do documento serve para pagamento, fisco e verificação de +18, não como KYC de apostas.</p>
       <p><strong>11. Alterações.</strong> Podemos atualizar estes termos. Mudanças relevantes são comunicadas via notificação in-app e email.</p>
       <p><strong>12. Contato.</strong> contato@jonasgoat.com</p>
-      <p style={{ marginTop: 12, color: 'var(--muted)', fontSize: 11 }}>+18 · jogue com responsabilidade · aposta envolve risco de perda total · versão 2026-05.</p>
+      <p style={{ marginTop: 12, color: 'var(--muted)', fontSize: 11 }}>+18 · jogue com responsabilidade · aposta envolve risco de perda total · versão 2026-06.</p>
     </div>
   );
 }

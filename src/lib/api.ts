@@ -728,6 +728,8 @@ export interface WCTeamForm {
 }
 export interface WCAnalysis {
   match: WCMatch;
+  /** true quando o usuário (grátis/anônimo) não tem acesso — valores embaçados. */
+  locked?: boolean;
   probs: { home: number; draw: number; away: number };
   expected_goals: { home: number; away: number };
   likely_score: string;

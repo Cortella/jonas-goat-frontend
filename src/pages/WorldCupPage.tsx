@@ -499,7 +499,12 @@ function ModalBody({ a }: Readonly<{ a: WCAnalysis }>) {
         </div>
       </div>
 
-      <div style={{ padding: 22 }}>
+      <div style={{ padding: 22, position: 'relative' }}>
+        {a.locked && <LockedOverlay />}
+        <div
+          aria-hidden={a.locked}
+          style={a.locked ? { filter: 'blur(7px)', pointerEvents: 'none', userSelect: 'none' } : undefined}
+        >
         {/* Probabilidades 1X2 */}
         <div className="t-eyebrow" style={{ marginBottom: 10 }}>Probabilidades (modelo)</div>
         <ProbBar3 home={a.probs.home} draw={a.probs.draw} away={a.probs.away} homeName={m.home.name} awayName={m.away.name} />
@@ -579,8 +584,33 @@ function ModalBody({ a }: Readonly<{ a: WCAnalysis }>) {
         <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 18, textAlign: 'center' }}>
           Estimativas do modelo a partir do desempenho real no torneio. Não é recomendação de aposta.
         </p>
+        </div>
       </div>
     </>
+  );
+}
+
+/** Overlay de paywall sobre a análise embaçada (plano grátis/anônimo). */
+function LockedOverlay() {
+  return (
+    <div
+      style={{
+        position: 'absolute', inset: 0, zIndex: 2,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 12, padding: 24, textAlign: 'center',
+        background: 'linear-gradient(180deg, oklch(0.2 0.02 260 / 0.35), oklch(0.16 0.02 260 / 0.72))',
+        backdropFilter: 'blur(1px)',
+      }}
+    >
+      <div style={{ fontSize: 26 }} aria-hidden>🔒</div>
+      <strong style={{ fontSize: 16 }}>Análise exclusiva do Pro</strong>
+      <p style={{ fontSize: 13, color: 'var(--text-2)', maxWidth: 280, margin: 0, lineHeight: 1.5 }}>
+        Probabilidades, mercados (Over/Under, ambas marcam, dupla chance) e palpites de valor são liberados no plano Pro.
+      </p>
+      <Link to="/precos" className="btn btn-edge btn-sm" style={{ textDecoration: 'none', marginTop: 4 }}>
+        Assinar o Pro
+      </Link>
+    </div>
   );
 }
 

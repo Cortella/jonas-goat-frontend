@@ -12,6 +12,7 @@ import { ComparatorPage } from './pages/ComparatorPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { BankrollPage } from './pages/BankrollPage';
 import { TransparencyPage } from './pages/TransparencyPage';
+import { MethodologyPage } from './pages/MethodologyPage';
 import { MatchDetailPage } from './pages/MatchDetailPage';
 import { LiveMatchPage } from './pages/LiveMatchPage';
 import { WorldCupPage } from './pages/WorldCupPage';
@@ -65,6 +66,7 @@ export function App() {
         <Route path="/partida-ao-vivo/:matchId" element={<LiveMatchPage />} />
         <Route path="/comparador" element={<ComparatorPage />} />
         <Route path="/transparencia" element={<TransparencyPage />} />
+        <Route path="/metodologia" element={<MethodologyPage />} />
         <Route path="/copa-2026" element={<WorldCupPage />} />
         <Route path="/copa-2026/selecao/:slug" element={<SelecaoPage />} />
 

@@ -130,7 +130,7 @@ export function LandingPage() {
         </Link>
         <nav style={{ display: 'flex', gap: 2, marginLeft: 20, alignItems: 'center' }}>
           <NavItem href="#como-funciona">{t('landing.nav_how')}</NavItem>
-          <NavItem to="/transparencia">{t('landing.nav_methodology')}</NavItem>
+          <NavItem to="/metodologia">{t('landing.nav_methodology')}</NavItem>
           <NavItem to="/precos">{t('landing.nav_plans')}</NavItem>
           <NavItem href="#faq">FAQ</NavItem>
         </nav>
@@ -674,7 +674,7 @@ function Footer() {
       <nav style={{ display: 'flex', gap: 16, fontSize: 11, color: 'var(--muted)', alignItems: 'center' }}>
         <Link to="/termos" style={{ color: 'inherit' }}>{t('footer.terms')}</Link>
         <Link to="/precos" style={{ color: 'inherit' }}>{t('footer.plans')}</Link>
-        <Link to="/transparencia" style={{ color: 'inherit' }}>{t('footer.methodology')}</Link>
+        <Link to="/metodologia" style={{ color: 'inherit' }}>{t('footer.methodology')}</Link>
         <a
           href="https://instagram.com/jonasgoat.bet"
           target="_blank"

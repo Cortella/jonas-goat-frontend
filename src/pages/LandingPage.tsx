@@ -12,6 +12,7 @@ import {
 } from '../components/atoms';
 import { Seo } from '../components/Seo';
 import { ReviewsSection } from '../components/ReviewsSection';
+import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { LanguageSelector } from '../components/LanguageSelector';
 import type { Prediction } from '../lib/types';
@@ -80,6 +81,7 @@ export function LandingPage() {
   const signupHref = ref ? `/signup?ref=${encodeURIComponent(ref)}` : '/signup';
 
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   const STEPS = [
     { n: '01', title: t('landing.step1_title'), desc: t('landing.step1_desc') },
@@ -136,12 +138,20 @@ export function LandingPage() {
         </nav>
         <div style={{ flex: 1 }} />
         <LanguageSelector />
-        <Link to="/login" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none', marginLeft: 4 }}>
-          {t('nav.login')}
-        </Link>
-        <Link to={signupHref} className="btn btn-edge btn-sm" style={{ textDecoration: 'none' }}>
-          {t('landing.cta_signup')}
-        </Link>
+        {user ? (
+          <Link to="/predictions" className="btn btn-edge btn-sm" style={{ textDecoration: 'none', marginLeft: 4 }}>
+            {t('nav.dashboard', 'Acessar painel')}
+          </Link>
+        ) : (
+          <>
+            <Link to="/login" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none', marginLeft: 4 }}>
+              {t('nav.login')}
+            </Link>
+            <Link to={signupHref} className="btn btn-edge btn-sm" style={{ textDecoration: 'none' }}>
+              {t('landing.cta_signup')}
+            </Link>
+          </>
+        )}
       </header>
 
       {/* ─── Referral banner (only when ?ref= is valid) ─── */}

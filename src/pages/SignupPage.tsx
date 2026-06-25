@@ -390,7 +390,7 @@ function TermsBox({ onScrolledToEnd }: Readonly<{ onScrolledToEnd: () => void }>
       <p><strong>9. Propriedade intelectual.</strong> Modelos, dados agregados e software são propriedade do Jonas Goat. Proibida redistribuição, scraping ou revenda.</p>
       <p><strong>10. Conformidade legal (Brasil).</strong> Operamos em conformidade com a Lei 14.790/2023. Bookmakers licenciados pela SPA / Ministério da Fazenda é quem opera apostas — somos um produto de informação paralelo.</p>
       <p><strong>11. Alterações.</strong> Podemos atualizar estes termos. Mudanças relevantes são comunicadas via notificação in-app e email.</p>
-      <p><strong>12. Contato.</strong> contato@jonasgoat.com.br</p>
+      <p><strong>12. Contato.</strong> contato@jonasgoat.com</p>
       <p style={{ marginTop: 12, color: 'var(--muted)', fontSize: 11 }}>+18 · jogue com responsabilidade · aposta envolve risco de perda total · versão 2026-05.</p>
     </div>
   );

@@ -7,4 +7,4 @@ Disallow: /bankroll
 Disallow: /alertas
 Disallow: /afiliados
 
-Sitemap: https://jonasgoat.com.br/sitemap.xml
+Sitemap: https://www.jonasgoat.com/sitemap.xml

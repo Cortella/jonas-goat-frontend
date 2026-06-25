@@ -189,7 +189,7 @@ export function AlertsPage() {
             </div>
 
             <div style={{ marginTop: 12, fontSize: 10, color: 'var(--muted)', textAlign: 'center' }}>
-              Aposte com responsabilidade. +18 · jonasgoat.com.br/responsavel
+              Aposte com responsabilidade. +18 · www.jonasgoat.com/responsavel
             </div>
           </div>
 

@@ -172,8 +172,8 @@ export function TermsPage() {
 
         <Section title="12. Contato">
           Dúvidas, reclamações e solicitações de privacidade:{' '}
-          <a href="mailto:contato@jonasgoat.com.br" style={{ color: 'var(--edge)' }}>
-            contato@jonasgoat.com.br
+          <a href="mailto:contato@jonasgoat.com" style={{ color: 'var(--edge)' }}>
+            contato@jonasgoat.com
           </a>
           .
         </Section>

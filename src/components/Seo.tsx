@@ -12,7 +12,7 @@ interface Props {
   schema?: Record<string, unknown>;
 }
 
-const DEFAULT_DOMAIN = 'https://jonasgoat.com.br';
+const DEFAULT_DOMAIN = 'https://www.jonasgoat.com';
 
 export function Seo({ title, description, path, image, type = 'website', noindex, schema }: Readonly<Props>) {
   const url = path ? `${DEFAULT_DOMAIN}${path}` : DEFAULT_DOMAIN;

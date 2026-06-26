@@ -1,5 +1,7 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeToggle } from './components/ThemeToggle';
+import { trackPageview } from './lib/analytics';
 import { AdminRoute, AuthProvider, ProtectedRoute } from './lib/auth';
 import { LandingPage } from './pages/LandingPage';
 import { PricingPage } from './pages/PricingPage';
@@ -19,6 +21,7 @@ import { SelecaoPage } from './pages/SelecaoPage';
 import { LoginPage } from './pages/LoginPage';
 import { GoogleOnboardingPage } from './pages/GoogleOnboardingPage';
 import { SignupPage } from './pages/SignupPage';
+import { ThankYouPage } from './pages/ThankYouPage';
 import { TermsPage } from './pages/TermsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
@@ -46,10 +49,22 @@ import { VisionPage } from './pages/VisionPage';
 import { AdminSuggestionsPage } from './pages/AdminSuggestionsPage';
 import { SupportBubble } from './components/SupportChat';
 import { SubscribeOffer } from './components/SubscribeOffer';
+import { SubscriberTour } from './components/SubscriberTour';
+
+// Dispara um pageview a cada troca de rota (a SPA não recarrega a página, então
+// o GA4 não contaria as navegações seguintes sozinho).
+function RouteTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    trackPageview(location.pathname + location.search);
+  }, [location.pathname, location.search]);
+  return null;
+}
 
 export function App() {
   return (
     <AuthProvider>
+      <RouteTracker />
       <ThemeToggle />
       <EmailConfirmBanner />
       <Routes>
@@ -132,6 +147,15 @@ export function App() {
           element={
             <ProtectedRoute>
               <CreditsPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* Página de conversão: destino pós-pagamento que o Google Ads mede. */}
+        <Route
+          path="/obrigado"
+          element={
+            <ProtectedRoute>
+              <ThankYouPage />
             </ProtectedRoute>
           }
         />
@@ -283,6 +307,7 @@ export function App() {
       </Routes>
       <SupportBubble />
       <SubscribeOffer />
+      <SubscriberTour />
     </AuthProvider>
   );
 }

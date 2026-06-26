@@ -97,6 +97,12 @@ export interface SignupBody {
   platforms?: string[];
   terms_accepted: true;
   referralCode?: string;
+  // Atribuição de campanha (Google Ads). Opcionais — só presentes quando o
+  // usuário chegou por um anúncio.
+  gclid?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
 }
 
 export interface ProfilePatch {
@@ -490,6 +496,7 @@ export interface Preferences {
   bankroll_initial: number;
   bankroll_current: number;
   onboarded: boolean;
+  onboarded_pro: boolean;
   suggestions_enabled: boolean;
 }
 
@@ -972,6 +979,7 @@ export const api = {
   getPreferences: () => get<Preferences>('/api/preferences'),
   setPreferences: (body: Partial<Preferences>) => put<Preferences>('/api/preferences', body),
   markOnboarded: () => post<{ ok: boolean }>('/api/preferences/onboarded', {}),
+  markProOnboarded: () => post<{ ok: boolean }>('/api/preferences/onboarded-pro', {}),
   gameSuggestions: () => get<SuggestionsResponse>('/api/predictions/suggestions'),
   setSuggestionsEnabled: (enabled: boolean) =>
     post<{ ok: boolean; suggestions_enabled: boolean }>('/api/preferences/suggestions', { enabled }),

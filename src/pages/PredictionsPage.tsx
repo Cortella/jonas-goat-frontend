@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AppBar } from '../components/AppBar';
@@ -155,6 +155,8 @@ export function PredictionsPage() {
         />
       </div>
 
+      <GameSuggestions />
+
       {/* KPI strip */}
       <div
         style={{
@@ -267,6 +269,56 @@ export function PredictionsPage() {
           </div>
         )}
         {!q.isLoading && !q.isError && preds.length > 0 && <PredictionsList preds={preds} />}
+      </div>
+    </div>
+  );
+}
+
+// Sugestões do Jonas (Pro): jogos que valem a pena por EV + confiança. O
+// usuário pode ocultar/reativar quando quiser (preferência suggestions_enabled).
+function GameSuggestions() {
+  const qc = useQueryClient();
+  const sugQ = useQuery({ queryKey: ['game-suggestions'], queryFn: () => api.gameSuggestions() });
+  const toggle = useMutation({
+    mutationFn: (enabled: boolean) => api.setSuggestionsEnabled(enabled),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['game-suggestions'] }),
+  });
+  if (!sugQ.data) return null;
+
+  if (!sugQ.data.enabled) {
+    return (
+      <div style={{ padding: '0 32px 12px', maxWidth: 1280, margin: '0 auto' }}>
+        <button className="btn btn-ghost btn-sm" onClick={() => toggle.mutate(true)} disabled={toggle.isPending}>
+          🐐 Mostrar sugestões do Jonas
+        </button>
+      </div>
+    );
+  }
+  if (sugQ.data.suggestions.length === 0) return null;
+
+  return (
+    <div style={{ padding: '0 32px 16px', maxWidth: 1280, margin: '0 auto' }}>
+      <div className="surface" style={{ padding: 16, border: '1px solid oklch(0.88 0.17 125 / 0.4)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <div className="t-eyebrow">🐐 Sugestões do Jonas · vale a pena olhar</div>
+          <button className="btn btn-ghost btn-sm" onClick={() => toggle.mutate(false)} disabled={toggle.isPending}>Ocultar</button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+          {sugQ.data.suggestions.map((s) => (
+            <Link key={s.match_id} to={`/predictions/${s.match_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div style={{ padding: 12, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{s.home_team} × {s.away_team}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>
+                  {s.league}{s.kickoff ? ` · ${s.kickoff.slice(11, 16)}` : ''}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  {s.market && <span className="tag tag-edge" style={{ fontSize: 10 }}>{s.market}</span>}
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--edge)' }}>EV +{(s.ev * 100).toFixed(1)}%</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

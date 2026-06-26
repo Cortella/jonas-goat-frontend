@@ -490,6 +490,24 @@ export interface Preferences {
   bankroll_initial: number;
   bankroll_current: number;
   onboarded: boolean;
+  suggestions_enabled: boolean;
+}
+
+export interface GameSuggestion {
+  match_id: number;
+  home_team: string;
+  away_team: string;
+  league: string;
+  kickoff: string | null;
+  market: string | null;
+  ev: number;
+  odds: number | null;
+  confidence: string;
+}
+
+export interface SuggestionsResponse {
+  enabled: boolean;
+  suggestions: GameSuggestion[];
 }
 
 export interface AlertRule {
@@ -937,6 +955,9 @@ export const api = {
   getPreferences: () => get<Preferences>('/api/preferences'),
   setPreferences: (body: Partial<Preferences>) => put<Preferences>('/api/preferences', body),
   markOnboarded: () => post<{ ok: boolean }>('/api/preferences/onboarded', {}),
+  gameSuggestions: () => get<SuggestionsResponse>('/api/predictions/suggestions'),
+  setSuggestionsEnabled: (enabled: boolean) =>
+    post<{ ok: boolean; suggestions_enabled: boolean }>('/api/preferences/suggestions', { enabled }),
 
   // alerts
   listRules: () => get<AlertRule[]>('/api/alerts/rules'),

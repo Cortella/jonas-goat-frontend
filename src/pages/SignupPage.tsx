@@ -2,12 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { Logo } from '../components/atoms';
 import { Seo } from '../components/Seo';
 import { useAuth } from '../lib/auth';
-import { api, type SignupBody } from '../lib/api';
+import { api, setToken, type SignupBody } from '../lib/api';
 import { LanguageSelector } from '../components/LanguageSelector';
+
+const googleEnabled = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
 import { COUNTRIES } from '../lib/countries';
+import { trackEvent } from '../lib/analytics';
+import { getAttribution } from '../lib/attribution';
 
 function maskCpf(v: string) {
   const d = v.replace(/\D/g, '').slice(0, 11);
@@ -37,8 +42,24 @@ function isAdultClient(birthIso: string) {
 
 export function SignupPage() {
   const { t } = useTranslation();
-  const { signup } = useAuth();
+  const { signup, refresh } = useAuth();
   const navigate = useNavigate();
+
+  const onGoogle = async (cred: CredentialResponse) => {
+    if (!cred.credential) return;
+    try {
+      const r = await api.googleAuth(cred.credential);
+      if ('needs_onboarding' in r) {
+        navigate('/cadastro-google', { state: { email: r.email, name: r.name, pending: r.pending } });
+        return;
+      }
+      setToken(r.token);
+      await refresh();
+      navigate('/predictions', { replace: true });
+    } catch {
+      /* erros mostrados no fluxo de login; aqui mantém o cadastro normal */
+    }
+  };
   const [searchParams] = useSearchParams();
 
   // Identificação
@@ -135,6 +156,9 @@ export function SignupPage() {
 
     setLoading(true);
     try {
+      // Atribuição de campanha (gclid/UTM) capturada no primeiro acesso — fecha
+      // o ciclo "clique no anúncio → conta criada" no backend.
+      const attribution = getAttribution();
       const body: SignupBody = {
         email,
         password,
@@ -146,8 +170,13 @@ export function SignupPage() {
         platforms,
         terms_accepted: true,
         referralCode: referralCode || undefined,
+        gclid: attribution?.gclid,
+        utm_source: attribution?.utm_source,
+        utm_medium: attribution?.utm_medium,
+        utm_campaign: attribution?.utm_campaign,
       };
       await signup(body);
+      trackEvent('sign_up', { method: 'email' });
       navigate('/onboarding', { replace: true });
     } catch (err) {
       setError((err as Error).message || t('auth.login_error_generic'));
@@ -173,6 +202,19 @@ export function SignupPage() {
         <p style={{ color: 'var(--text-2)', fontSize: 13, marginBottom: 24 }}>
           Leva menos de um minuto. Plano free libera 5 previsões por dia.
         </p>
+
+        {googleEnabled && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <GoogleLogin onSuccess={onGoogle} text="signup_with" shape="pill" width="340" locale="pt-BR" />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 20, color: 'var(--muted)', fontSize: 12 }}>
+              <span style={{ flex: 1, borderTop: '1px solid var(--line)' }} />
+              ou preencha seus dados
+              <span style={{ flex: 1, borderTop: '1px solid var(--line)' }} />
+            </div>
+          </div>
+        )}
 
         {affiliatesEnabled && referralCode && sponsor && (
           <div

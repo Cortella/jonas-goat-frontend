@@ -5,8 +5,9 @@ import { Crest, Dot, ProbBar, Sparkline } from '../components/atoms';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
+// Custo em créditos da plataforma — em USD (cobramos sempre em dólar).
 const BRL = (v: number) =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
 interface ModelRow {
   name: string;

@@ -4,8 +4,9 @@ import { AppBar } from '../components/AppBar';
 import { SectionHeader, Stat } from '../components/atoms';
 import { api, type AffiliateMe, type AffiliateCommission } from '../lib/api';
 
+// Comissões de afiliado seguem a moeda da plataforma — USD.
 const BRL = (v: number) =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 });
+  v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
 
 const STATUS_COLOR: Record<AffiliateCommission['status'], string> = {
   pending: 'var(--warn)',

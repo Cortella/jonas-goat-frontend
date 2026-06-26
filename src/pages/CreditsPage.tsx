@@ -4,8 +4,9 @@ import { Logo } from '../components/atoms';
 import { Seo } from '../components/Seo';
 import { api, type CreditTransaction } from '../lib/api';
 
+// Créditos da plataforma são em USD (cobramos sempre em dólar).
 const BRL = (v: number) =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
 const KIND_LABEL: Record<CreditTransaction['kind'], string> = {
   topup: 'Recarga',

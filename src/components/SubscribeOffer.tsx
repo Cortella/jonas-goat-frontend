@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 
-// Oferta flutuante de assinatura — fica fixa no canto inferior esquerdo em
+// Oferta flutuante "Vire Founder" — fica fixa no canto inferior esquerdo em
 // TODA tela para quem ainda não assina (visitante ou plano free). Um clique
-// leva direto ao checkout do Pro. Some assim que o usuário vira pro/founders.
+// leva direto ao checkout de Founder (campanha de 100 vagas). Some assim que o
+// usuário vira pro/founders.
 // Canto esquerdo pra não colidir com o SupportBubble (canto direito).
 
 // Telas onde a oferta seria redundante (a própria página já é a conversão).
@@ -21,13 +22,13 @@ export function SubscribeOffer() {
 
   // Visitante deslogado não consegue ir ao checkout (rota protegida): manda
   // pro cadastro, que já encaminha pra escolha de plano.
-  const to = user ? '/checkout?plan=pro&cycle=monthly' : '/signup';
+  const to = user ? '/checkout?plan=founders&cycle=lifetime' : '/signup';
 
   if (collapsed) {
     return (
       <Link
         to={to}
-        aria-label="Assinar o Pro"
+        aria-label="Vire Founder"
         style={{
           position: 'fixed', left: 24, bottom: 24, zIndex: 100,
           background: 'var(--edge)', color: 'oklch(0.16 0.006 240)',
@@ -36,9 +37,9 @@ export function SubscribeOffer() {
           textDecoration: 'none', fontSize: 22,
           boxShadow: '0 4px 12px oklch(0 0 0 / 0.3)',
         }}
-        title="Assine o Pro"
+        title="Vire Founder · 100 vagas"
       >
-        ⚡
+        🐐
       </Link>
     );
   }
@@ -56,11 +57,11 @@ export function SubscribeOffer() {
         display: 'flex', alignItems: 'center', gap: 12,
       }}
     >
-      <span aria-hidden style={{ fontSize: 22 }}>⚡</span>
+      <span aria-hidden style={{ fontSize: 22 }}>🐐</span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <strong style={{ fontSize: 13, color: 'var(--text)' }}>Libere o Jonas Goat Pro</strong>
+        <strong style={{ fontSize: 13, color: 'var(--text)' }}>Vire Founder · só 100 vagas</strong>
         <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-          Previsões ilimitadas, todos os mercados e alertas.
+          5 anos de acesso total + grupo VIP no WhatsApp.
         </span>
       </div>
       <Link
@@ -68,7 +69,7 @@ export function SubscribeOffer() {
         className="btn btn-edge btn-sm"
         style={{ textDecoration: 'none', whiteSpace: 'nowrap', fontSize: 12 }}
       >
-        Assinar
+        Garantir vaga
       </Link>
       <button
         type="button"

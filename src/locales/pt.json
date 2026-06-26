@@ -190,11 +190,11 @@
     "plan_free_price_sub": "pra sempre",
     "plan_free_cta": "Começar grátis",
     "plan_pro_tagline": "Cobertura completa + alertas em tempo real.",
-    "plan_pro_price_sub": "/mês · ou R$ 390/ano",
+    "plan_pro_price_sub": "/mês · ou US$ 100/ano",
     "plan_pro_cta": "Assinar Pro",
-    "plan_founders_tagline": "Acesso vitalício + canal privado com o time.",
-    "plan_founders_price_sub": "lifetime · 200 vagas",
-    "plan_founders_cta": "78 / 200 vagas"
+    "plan_founders_tagline": "5 anos de acesso total + grupo VIP no WhatsApp com o time.",
+    "plan_founders_price_sub": "5 anos · 100 vagas",
+    "plan_founders_cta": "Quero ser Founder"
   },
   "common": {
     "loading": "Carregando…",

@@ -18,7 +18,7 @@ export function VisionPage() {
       <AppBar />
       <Seo
         title="Visão & Founders"
-        description="O futuro do Jonas Goat: todas as ligas e todos os mercados em breve. Começamos pela Copa do Mundo 2026 para validar a IA com foco e máxima assertividade. Conheça as vantagens eternas do plano Founders."
+        description="Os Founders bancam a infraestrutura de IA do Jonas Goat e garantem 5 anos de acesso total à plataforma, grupo VIP no WhatsApp com os engenheiros, selo de fundador e créditos vitalícios. São só 100 vagas a US$ 500."
         path="/founders"
       />
 
@@ -58,7 +58,7 @@ export function VisionPage() {
           </ul>
         </Section>
 
-        {/* Founders — destaque */}
+        {/* Founders — campanha */}
         <section
           style={{
             marginTop: 48,
@@ -68,31 +68,51 @@ export function VisionPage() {
             border: '1px solid oklch(0.88 0.17 125 / 0.45)',
           }}
         >
-          <div className="t-eyebrow" style={{ marginBottom: 10 }}>Plano Founders</div>
+          <div className="t-eyebrow" style={{ marginBottom: 10 }}>Plano Founders · 100 vagas</div>
           <h2 style={{ fontSize: 26, fontWeight: 600, margin: '0 0 10px', letterSpacing: '-0.01em' }}>
-            Entrou cedo? As vantagens são <span style={{ color: 'var(--edge)' }}>eternas</span>.
+            Banque a IA com a gente e garanta <span style={{ color: 'var(--edge)' }}>5 anos de acesso total</span>.
           </h2>
-          <p style={{ fontSize: 15, color: 'var(--text-2)', lineHeight: 1.6, margin: '0 0 20px', maxWidth: 640 }}>
-            Os Founders são quem acreditou no projeto no começo — e por isso recebem um lugar que
-            ninguém mais terá. Não é uma promoção temporária: é um benefício <strong>para sempre</strong>.
+          <p style={{ fontSize: 15, color: 'var(--text-2)', lineHeight: 1.6, margin: '0 0 18px', maxWidth: 660 }}>
+            Para refinar nosso modelo ao máximo e o mais rápido possível, precisamos bancar a
+            infraestrutura de IA. Por isso estamos abrindo <strong>100 vagas de Founder a US$ 500</strong> cada —
+            quem entra agora financia esse salto e leva um lugar que ninguém mais terá.
           </p>
+
+          {/* Missão — por que estamos abrindo as vagas */}
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 12, padding: 16, margin: '0 0 20px' }}>
+            <div style={{ fontSize: 28 }} aria-hidden>🚀</div>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <strong style={{ fontSize: 14, display: 'block', marginBottom: 4 }}>Meta: US$ 50 mil para a infraestrutura de IA</strong>
+              <span style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5 }}>
+                100 Founders × US$ 500 = US$ 50 mil. Quanto mais rápido fecharmos as vagas, mais rápido
+                o modelo evolui — e os Founders colhem esse avanço primeiro.
+              </span>
+            </div>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
-            <Benefit icon="🔒" title="Preço travado para sempre">
-              O valor de fundador nunca aumenta. Enquanto sua assinatura seguir ativa, você paga o
-              preço de hoje — mesmo quando os planos subirem para todo mundo.
+            <Benefit icon="🎯" title="5 anos de acesso a TUDO">
+              Acesso total a todo o conteúdo da plataforma por 5 anos, sem limites. Os planos Pro vão
+              passar a ter <strong>limite de previsões</strong> nos próximos meses — o Founder, não.
             </Benefit>
-            <Benefit icon="🌍" title="Tudo que vier, incluído">
-              Todas as ligas e todos os mercados que lançarmos entram no seu plano sem custo extra.
-              Você cresce junto com a plataforma, de graça.
+            <Benefit icon="💬" title="Grupo VIP no WhatsApp">
+              Entrada exclusiva num grupo fechado com os <strong>engenheiros da plataforma</strong> e
+              outros apostadores. Troque ideia e ajude a direcionar o produto.
             </Benefit>
             <Benefit icon="🐐" title="Selo de Founder">
-              Reconhecimento permanente de quem construiu o Jonas Goat desde o início.
+              Selo permanente de fundador na nossa <strong>futura rede social</strong> — o
+              reconhecimento de quem acreditou desde o início.
             </Benefit>
-            <Benefit icon="🗣️" title="Voz no roadmap">
-              Sugestões de Founders têm prioridade. Você ajuda a decidir o que entra primeiro.
+            <Benefit icon="♾️" title="Créditos vitalícios">
+              Uma <strong>cota de créditos vitalícia</strong> no sistema, para usar nos recursos que
+              rodam por crédito — para sempre.
             </Benefit>
           </div>
-          <div style={{ marginTop: 24 }}>
+
+          <p style={{ fontSize: 13, color: 'var(--edge)', fontWeight: 600, margin: '20px 0 0' }}>
+            São só 100 vagas. Quando fecharem, acabou.
+          </p>
+          <div style={{ marginTop: 14 }}>
             <Link to="/checkout?plan=founders&cycle=lifetime" className="btn btn-edge" style={{ textDecoration: 'none', padding: '12px 22px', fontWeight: 700 }}>
               Quero ser Founder
             </Link>

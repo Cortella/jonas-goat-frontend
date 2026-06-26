@@ -79,14 +79,12 @@ export function PricingPage() {
       to: '/checkout?plan=founders&cycle=lifetime',
       emphasis: false,
       features: [
-        ['Tudo do Pro', true],
-        ['Acesso vitalício', true],
-        ['Canal Discord privado', true],
-        ['Voto em novas features', true],
-        ['Backtest customizado mensal', true],
-        ['API key (rate-limited)', true],
-        ['Selo Founders', true],
-        ['Onboarding 1:1', true],
+        ['Tudo do Pro, sem limite de previsões', true],
+        ['5 anos de acesso a todo o conteúdo', true],
+        ['Grupo VIP no WhatsApp com os engenheiros', true],
+        ['Selo de Founder na futura rede social', true],
+        ['Créditos vitalícios no sistema', true],
+        ['Voz no roadmap', true],
       ],
     },
   ];
@@ -95,7 +93,7 @@ export function PricingPage() {
     <div style={{ padding: '64px 48px', background: 'var(--bg)', maxWidth: 1280, margin: '0 auto' }}>
       <Seo
         title="Planos Free, Pro e Founders"
-        description="Free para sempre, Pro a R$ 49/mês ou R$ 390/ano, Founders R$ 1.490 lifetime."
+        description="Free para sempre, Pro a US$ 10/mês ou US$ 100/ano. Founders: 100 vagas com 5 anos de acesso total, grupo VIP no WhatsApp, selo de fundador e créditos vitalícios."
         path="/precos"
       />
       <div style={{ textAlign: 'center', marginBottom: 56 }}>

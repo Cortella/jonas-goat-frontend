@@ -312,7 +312,7 @@ export function LandingPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
           <PlanCard
             name="Free"
-            price="R$ 0"
+            price="$0"
             sub="pra sempre"
             bullets={['5 previsões/dia', 'Top 5 ligas', 'Sem Kelly nem alertas']}
             cta="Criar conta"
@@ -321,8 +321,8 @@ export function LandingPage() {
           <PlanCard
             highlight
             name="Pro"
-            price="R$ 49"
-            sub="/mês ou R$ 390/ano"
+            price="$10"
+            sub="/mês ou $100/ano"
             bullets={[
               'Previsões ilimitadas',
               'Comparador de odds (7 books)',
@@ -334,11 +334,11 @@ export function LandingPage() {
           />
           <PlanCard
             name="Founders"
-            price="R$ 1.490"
-            sub="lifetime · 200 vagas"
-            bullets={['Tudo do Pro vitalício', 'Discord privado', 'Voto em features']}
-            cta="78 / 200 vagas"
-            href="/precos"
+            price="US$ 500"
+            sub="5 anos · 100 vagas"
+            bullets={['5 anos de acesso a tudo', 'Grupo VIP no WhatsApp', 'Selo + créditos vitalícios']}
+            cta="Quero ser Founder"
+            href="/founders"
           />
         </div>
       </section>

@@ -13,8 +13,9 @@ import {
   type Plan,
 } from '../lib/api';
 
-const BRL = (v: number) =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+// Cobramos sempre em USD; a Stripe converte para a moeda local no checkout.
+const money = (v: number) =>
+  v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
 const METHOD_LABEL: Record<PaymentMethod, string> = {
   pix: 'Pix',
@@ -158,8 +159,12 @@ export function CheckoutPage() {
     ? round2(selectedPackage.price_brl + selectedPackage.bonus_brl)
     : 0;
 
+  // Stripe hospedado: o cartão é digitado na página segura da Stripe (redirect),
+  // então não coletamos número de cartão aqui.
+  const stripeHosted = config.gateway === 'stripe';
   const cpfDigits = document.replace(/\D/g, '');
-  const cardOk = method !== 'card' || (cardHolder.trim().length > 2 && cardNumber.replace(/\D/g, '').length >= 13);
+  const cardOk =
+    method !== 'card' || stripeHosted || (cardHolder.trim().length > 2 && cardNumber.replace(/\D/g, '').length >= 13);
   const canPay = base > 0 && cpfDigits.length === 11 && cardOk && !creating;
 
   const availableMethods = config.payment_methods
@@ -284,7 +289,7 @@ export function CheckoutPage() {
                           on={cycle === c.cycle}
                           onClick={() => setCycle(c.cycle)}
                           label={CYCLE_LABEL[c.cycle]}
-                          price={BRL(c.price_brl)}
+                          price={money(c.price_brl)}
                           save={save}
                         />
                       );
@@ -296,12 +301,12 @@ export function CheckoutPage() {
                   {config.credit_packages.map((pk) => (
                     <Selectable key={pk.id} active={packageId === pk.id} onClick={() => setPackageId(pk.id)}>
                       <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700 }}>
-                        {BRL(pk.price_brl + pk.bonus_brl)}
+                        {money(pk.price_brl + pk.bonus_brl)}
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                        paga {BRL(pk.price_brl)}
+                        paga {money(pk.price_brl)}
                         {pk.bonus_brl > 0 && (
-                          <span style={{ color: 'var(--edge)' }}> · +{BRL(pk.bonus_brl)} bônus</span>
+                          <span style={{ color: 'var(--edge)' }}> · +{money(pk.bonus_brl)} bônus</span>
                         )}
                       </div>
                     </Selectable>
@@ -377,7 +382,20 @@ export function CheckoutPage() {
                 ))}
               </div>
 
-              {method === 'card' && (
+              {method === 'card' && stripeHosted && (
+                <div
+                  style={{
+                    marginTop: 14, padding: '12px 14px', borderRadius: 10,
+                    background: 'var(--bg-2)', border: '1px solid var(--line)',
+                    fontSize: 13, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 10,
+                  }}
+                >
+                  <span aria-hidden style={{ fontSize: 18 }}>🔒</span>
+                  Você vai concluir o pagamento na página segura da Stripe — é lá que o cartão é digitado.
+                </div>
+              )}
+
+              {method === 'card' && !stripeHosted && (
                 <div style={{ marginTop: 16, display: 'grid', gap: 10 }}>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <span className="t-eyebrow">Nome no cartão</span>
@@ -402,7 +420,7 @@ export function CheckoutPage() {
               {kind === 'plan' && config.wallet_balance_brl > 0 && (
                 <label style={{ marginTop: 16, display: 'flex', gap: 8, alignItems: 'center', fontSize: 13 }}>
                   <input type="checkbox" checked={useWallet} onChange={(e) => setUseWallet(e.target.checked)} />
-                  Usar saldo de créditos ({BRL(config.wallet_balance_brl)})
+                  Usar saldo de créditos ({money(config.wallet_balance_brl)})
                 </label>
               )}
             </Card>
@@ -425,17 +443,17 @@ export function CheckoutPage() {
               <div style={{ padding: 22 }}>
                 <Row
                   label={kind === 'plan' ? CYCLE_LABEL[cycle] : 'Pacote selecionado'}
-                  value={BRL(base)}
+                  value={money(base)}
                 />
                 {discounts.map((d) => (
-                  <Row key={d.label} label={d.label} value={`− ${BRL(d.value)}`} color="var(--edge)" />
+                  <Row key={d.label} label={d.label} value={`− ${money(d.value)}`} color="var(--edge)" />
                 ))}
-                {walletApplied > 0 && <Row label="Saldo de créditos" value={`− ${BRL(walletApplied)}`} color="var(--edge)" />}
+                {walletApplied > 0 && <Row label="Saldo de créditos" value={`− ${money(walletApplied)}`} color="var(--edge)" />}
                 {kind === 'credits' && (
-                  <Row label="Créditos recebidos" value={BRL(creditsReceived)} color="var(--edge)" />
+                  <Row label="Créditos recebidos" value={money(creditsReceived)} color="var(--edge)" />
                 )}
                 <hr className="hl" style={{ margin: '12px 0' }} />
-                <Row label="Total" value={BRL(amount)} bold />
+                <Row label="Total" value={money(amount)} bold />
 
                 {error && <div style={{ fontSize: 12, color: 'var(--loss)', marginTop: 12 }}>{error}</div>}
 
@@ -445,7 +463,7 @@ export function CheckoutPage() {
                   onClick={submit}
                   disabled={!canPay}
                 >
-                  {creating ? 'Processando…' : amount > 0 ? `Pagar ${BRL(amount)}` : 'Finalizar'}
+                  {creating ? 'Processando…' : amount > 0 ? `Pagar ${money(amount)}` : 'Finalizar'}
                 </button>
 
                 {!canPay && !creating && cpfDigits.length !== 11 && (
@@ -682,7 +700,7 @@ function PlanCard({
         {name}
         {active && <span aria-hidden style={{ color: 'var(--edge)', fontSize: 14 }}>✓</span>}
       </div>
-      <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>a partir de <strong style={{ color: 'var(--text)' }}>{BRL(from)}</strong></div>
+      <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>a partir de <strong style={{ color: 'var(--text)' }}>{money(from)}</strong></div>
       {tagline && <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 8, lineHeight: 1.4 }}>{tagline}</div>}
     </button>
   );

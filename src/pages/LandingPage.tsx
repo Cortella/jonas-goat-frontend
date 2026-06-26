@@ -111,12 +111,25 @@ export function LandingPage() {
     { q: t('landing.faq4_q'), a: t('landing.faq4_a') },
   ];
 
+  // FAQPage JSON-LD: usa as mesmas perguntas exibidas abaixo (Google exige que
+  // o schema bata com o conteúdo visível). Habilita rich result de FAQ na busca.
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ.map((f) => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  };
+
   return (
     <div style={{ background: 'var(--bg)', color: 'var(--text)', overflowX: 'hidden' }}>
       <Seo
         title="Jonas Goat — Vantagem matemática sobre as casas de apostas"
         description="Três modelos estatísticos rodando em ensemble identificam value bets reais em odds publicadas por bookmakers. Análise transparente, sem palpite, sem hype. Top 5 ligas + UCL + Copa do Mundo 2026."
         path="/"
+        schema={faqSchema}
       />
 
       {/* ─── Top bar ──────────────────────────────────────────────── */}
@@ -141,6 +154,7 @@ export function LandingPage() {
         <nav style={{ display: 'flex', gap: 2, marginLeft: 20, alignItems: 'center' }}>
           <NavItem href="#como-funciona">{t('landing.nav_how')}</NavItem>
           <NavItem to="/metodologia">{t('landing.nav_methodology')}</NavItem>
+          <NavItem to="/gratis">Grátis</NavItem>
           <NavItem to="/precos">{t('landing.nav_plans')}</NavItem>
           <NavItem href="#faq">FAQ</NavItem>
         </nav>

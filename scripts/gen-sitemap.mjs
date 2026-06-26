@@ -11,6 +11,7 @@ const hl = (c) => HREFLANG[c] || c;
 const ROUTES = [
   ['/', '1.0'],
   ['/precos', '0.9'],
+  ['/gratis', '0.85'],
   ['/founders', '0.9'],
   ['/predictions', '0.8'],
   ['/comparador', '0.8'],

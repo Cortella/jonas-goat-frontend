@@ -28,6 +28,7 @@ const BankrollPage = lazy(() => import('./pages/BankrollPage').then((m) => ({ de
 const ReviewsPage = lazy(() => import('./pages/ReviewsPage').then((m) => ({ default: m.ReviewsPage })));
 const AchievementsPage = lazy(() => import('./pages/AchievementsPage').then((m) => ({ default: m.AchievementsPage })));
 const MethodologyPage = lazy(() => import('./pages/MethodologyPage').then((m) => ({ default: m.MethodologyPage })));
+const FreePage = lazy(() => import('./pages/FreePage').then((m) => ({ default: m.FreePage })));
 const MatchDetailPage = lazy(() => import('./pages/MatchDetailPage').then((m) => ({ default: m.MatchDetailPage })));
 const LiveMatchPage = lazy(() => import('./pages/LiveMatchPage').then((m) => ({ default: m.LiveMatchPage })));
 const WorldCupPage = lazy(() => import('./pages/WorldCupPage').then((m) => ({ default: m.WorldCupPage })));
@@ -92,6 +93,7 @@ export function App() {
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/precos" element={<PricingPage />} />
+        <Route path="/gratis" element={<FreePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/cadastro-google" element={<GoogleOnboardingPage />} />
         <Route path="/signup" element={<SignupPage />} />

@@ -37,11 +37,9 @@ export function CreditsPage() {
             <div style={{ fontFamily: 'var(--mono)', fontSize: 40, fontWeight: 600, letterSpacing: '-0.02em' }}>
               {me.data ? BRL(me.data.balance_brl) : '—'}
             </div>
-            {me.data && (
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                Cada previsão custa {BRL(me.data.unlock_cost_brl)} para destravar.
-              </div>
-            )}
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+              Use seus créditos como abatimento nas suas próximas compras.
+            </div>
           </div>
           <Link to="/checkout?credits=1" className="btn btn-edge">
             Carregar créditos

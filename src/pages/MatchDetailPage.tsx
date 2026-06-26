@@ -1,10 +1,9 @@
 import { Link, useParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { AppBar } from '../components/AppBar';
 import { Crest, Dot, ProbBar, Sparkline } from '../components/atoms';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { money as BRL } from '../lib/money';
 
 interface ModelRow {
   name: string;
@@ -49,7 +48,6 @@ export function MatchDetailPage() {
   const id = matchId ? Number(matchId) : null;
 
   const { user } = useAuth();
-  const qc = useQueryClient();
 
   const q = useQuery({
     queryKey: ['prediction', id],
@@ -58,20 +56,13 @@ export function MatchDetailPage() {
     retry: false,
   });
 
-  // Acesso à análise completa: planos pagos veem incluso; demais destravam
-  // gastando créditos. Anônimos veem o convite para entrar.
+  // Análise completa é exclusiva do Pro/Founders. Free vê o convite para
+  // assinar; anônimos veem o convite para entrar.
   const access = useQuery({
     queryKey: ['pred-access', id],
     queryFn: () => api.predictionAccess(id!),
     enabled: !!id && !!user,
     retry: false,
-  });
-  const unlock = useMutation({
-    mutationFn: () => api.unlockPrediction(id!),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['pred-access', id] });
-      qc.invalidateQueries({ queryKey: ['credits-me'] });
-    },
   });
   const locked = !!id && !!user && access.data ? !access.data.has_access : false;
   const lockedAnon = !!id && !user;
@@ -198,30 +189,18 @@ export function MatchDetailPage() {
               <div style={{ fontSize: 16, fontWeight: 500 }}>Análise completa bloqueada</div>
               {lockedAnon ? (
                 <>
-                  <p style={{ fontSize: 13, color: 'var(--text-2)', maxWidth: 320, margin: 0 }}>
-                    Entre para destravar todos os mercados, EV e picks deste jogo.
+                  <p style={{ fontSize: 13, color: 'var(--text-2)', maxWidth: 340, margin: 0 }}>
+                    Entre e assine o Pro para ver a análise completa: todos os mercados, EV e picks.
                   </p>
                   <Link to="/login" className="btn btn-edge">Entrar</Link>
                 </>
               ) : (
                 <>
-                  <p style={{ fontSize: 13, color: 'var(--text-2)', maxWidth: 340, margin: 0 }}>
-                    Destrave todos os mercados deste jogo por{' '}
-                    <strong>{access.data ? BRL(access.data.cost_brl) : '—'}</strong> em créditos.
-                    {access.data && (
-                      <> Saldo: <strong>{BRL(access.data.balance_brl)}</strong>.</>
-                    )}
+                  <p style={{ fontSize: 13, color: 'var(--text-2)', maxWidth: 360, margin: 0 }}>
+                    As previsões são exclusivas do <strong>Pro</strong>. Assine para ver todos os
+                    mercados, EV e picks — no plano Free você usa a carteira e registra apostas.
                   </p>
-                  {access.data && access.data.balance_brl >= access.data.cost_brl ? (
-                    <button className="btn btn-edge" onClick={() => unlock.mutate()} disabled={unlock.isPending}>
-                      {unlock.isPending ? 'Destravando…' : `Destravar por ${BRL(access.data.cost_brl)}`}
-                    </button>
-                  ) : (
-                    <Link to="/checkout?credits=1" className="btn btn-edge">Carregar créditos</Link>
-                  )}
-                  {unlock.isError && (
-                    <div style={{ fontSize: 12, color: 'var(--loss)' }}>{String(unlock.error)}</div>
-                  )}
+                  <Link to="/checkout?plan=pro&cycle=monthly" className="btn btn-edge">Assinar Pro</Link>
                 </>
               )}
             </div>

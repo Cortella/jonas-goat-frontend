@@ -11,10 +11,11 @@ import { api } from '../lib/api';
 import { SUPPORTED_LANGUAGES } from '../lib/i18n';
 import { LanguageSelector } from './LanguageSelector';
 
-interface NavItem { to: string; labelKey?: string; label?: string; emphasis?: 'cup'; affiliate?: boolean }
+interface NavItem { to: string; labelKey?: string; label?: string; emphasis?: 'cup'; affiliate?: boolean; auth?: boolean }
 const ITEMS: NavItem[] = [
   { to: '/copa-2026', labelKey: 'nav.cup', emphasis: 'cup' },
   { to: '/predictions', labelKey: 'nav.predictions' },
+  { to: '/bankroll', label: 'Carteira', auth: true },
   { to: '/comparador', labelKey: 'nav.comparator' },
   { to: '/founders', label: 'Founders' },
   { to: '/afiliados', labelKey: 'nav.affiliates', affiliate: true },
@@ -31,7 +32,9 @@ export function AppBar() {
   });
   // Programa de afiliados pausado → esconde a entrada do menu (foco na Copa).
   const affiliatesEnabled = settingsQ.data?.affiliate_program_enabled ?? false;
-  const items = ITEMS.filter((it) => !it.affiliate || affiliatesEnabled);
+  const items = ITEMS.filter(
+    (it) => (!it.affiliate || affiliatesEnabled) && (!it.auth || !!user),
+  );
   const [langOpen, setLangOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
 

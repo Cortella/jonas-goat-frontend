@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { AppBar } from '../components/AppBar';
 import { Confidence, Crest, EVChip, ProbBar, SectionHeader, Stat } from '../components/atoms';
 import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import type { Prediction } from '../lib/types';
 
 const LEAGUES = ['PL', 'PD', 'BL1', 'SA', 'FL1', 'CL', 'WC'] as const;
@@ -29,6 +30,8 @@ const GRID_COLS = '60px 1fr 200px 140px 60px 80px';
 
 export function PredictionsPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const canSee = !!user && (user.plan === 'pro' || user.plan === 'founders');
   const [params, setParams] = useSearchParams();
   const date = params.get('date') || todayIso();
   const league = params.get('league') || undefined;
@@ -69,6 +72,39 @@ export function PredictionsPage() {
   };
 
   const isToday = date === todayIso();
+
+  // Previsões são exclusivas do Pro/Founders. Free usa só a carteira e o
+  // registro de apostas.
+  if (!canSee) {
+    return (
+      <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+        <AppBar />
+        <div style={{ maxWidth: 560, margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: 48 }}>🔒</div>
+          <h1 style={{ fontSize: 26, fontWeight: 600, margin: '12px 0 8px' }}>
+            As previsões são exclusivas do Pro
+          </h1>
+          <p style={{ color: 'var(--text-2)', fontSize: 15, lineHeight: 1.6, margin: '0 0 24px' }}>
+            Previsões ilimitadas, EV, todos os mercados e alertas fazem parte do Pro e do Founders.
+            No plano Free você já pode usar a <strong>carteira</strong> e <strong>registrar suas apostas</strong>
+            {' '}para gerir sua banca.
+          </p>
+          <div style={{ display: 'inline-flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <Link
+              to={user ? '/checkout?plan=pro&cycle=monthly' : '/signup'}
+              className="btn btn-edge"
+              style={{ textDecoration: 'none', padding: '12px 22px', fontWeight: 700 }}
+            >
+              {user ? 'Assinar Pro' : 'Criar conta'}
+            </Link>
+            <Link to="/bankroll" className="btn btn-ghost" style={{ textDecoration: 'none' }}>
+              Ir para a carteira
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>

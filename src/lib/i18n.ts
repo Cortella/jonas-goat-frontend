@@ -90,6 +90,19 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'th', label: 'ภาษาไทย',  flag: '🇹🇭', nativeName: 'ภาษาไทย' },
 ];
 
+// Mapas para SEO: og:locale (Open Graph) e hreflang (Google) por idioma.
+export const OG_LOCALE: Record<string, string> = {
+  pt: 'pt_BR', en: 'en_US', zh: 'zh_CN', hi: 'hi_IN', es: 'es_ES', fr: 'fr_FR',
+  ar: 'ar_AR', bn: 'bn_BD', ru: 'ru_RU', id: 'id_ID', de: 'de_DE', ja: 'ja_JP',
+  ko: 'ko_KR', it: 'it_IT', tr: 'tr_TR', vi: 'vi_VN', pl: 'pl_PL', uk: 'uk_UA',
+  nl: 'nl_NL', th: 'th_TH',
+};
+export const HREFLANG: Record<string, string> = {
+  pt: 'pt-BR', en: 'en', zh: 'zh', hi: 'hi', es: 'es', fr: 'fr', ar: 'ar',
+  bn: 'bn', ru: 'ru', id: 'id', de: 'de', ja: 'ja', ko: 'ko', it: 'it',
+  tr: 'tr', vi: 'vi', pl: 'pl', uk: 'uk', nl: 'nl', th: 'th',
+};
+
 /** Detect language from IP (ipapi.co - free, no key required for basic usage) */
 export async function detectLangFromIP(): Promise<string | null> {
   try {
@@ -132,8 +145,10 @@ i18n
     },
     fallbackLng: 'pt',
     detection: {
-      order: ['localStorage', 'navigator'],
+      // querystring (?lng=xx) primeiro → permite URLs por idioma (hreflang/SEO).
+      order: ['querystring', 'localStorage', 'navigator'],
       caches: ['localStorage'],
+      lookupQuerystring: 'lng',
       lookupLocalStorage: 'jg_lang',
     },
     interpolation: { escapeValue: false },

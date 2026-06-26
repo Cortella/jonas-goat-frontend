@@ -936,6 +936,7 @@ export const api = {
   // preferences
   getPreferences: () => get<Preferences>('/api/preferences'),
   setPreferences: (body: Partial<Preferences>) => put<Preferences>('/api/preferences', body),
+  markOnboarded: () => post<{ ok: boolean }>('/api/preferences/onboarded', {}),
 
   // alerts
   listRules: () => get<AlertRule[]>('/api/alerts/rules'),

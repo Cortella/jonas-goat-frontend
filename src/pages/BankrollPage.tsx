@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppBar } from '../components/AppBar';
 import { SectionHeader, Stat } from '../components/atoms';
 import { api, type BankrollEntry, type BankrollSummary, type BankrollWallet, type Bet } from '../lib/api';
 import { money as BRL } from '../lib/money';
 import { PlaceBetModal } from '../components/PlaceBetModal';
+import { WalletTour } from '../components/WalletTour';
 
 const PCT = (v: number) => `${(v * 100).toFixed(1)}%`;
 
@@ -38,6 +39,18 @@ export function BankrollPage() {
   const [entryOpen, setEntryOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
 
+  const [tourOpen, setTourOpen] = useState(false);
+  const prefsQ = useQuery({ queryKey: ['preferences'], queryFn: () => api.getPreferences() });
+  const mark = useMutation({ mutationFn: () => api.markOnboarded(), onSuccess: () => qc.invalidateQueries({ queryKey: ['preferences'] }) });
+  // Tour guiado na 1ª vez (flag onboarded).
+  useEffect(() => {
+    if (prefsQ.data && !prefsQ.data.onboarded) setTourOpen(true);
+  }, [prefsQ.data]);
+  const closeTour = () => {
+    setTourOpen(false);
+    if (prefsQ.data && !prefsQ.data.onboarded) mark.mutate();
+  };
+
   const walletsQ = useQuery({ queryKey: ['bankroll-wallets'], queryFn: () => api.listWallets() });
   const summaryQ = useQuery({ queryKey: ['bankroll-summary', wallet], queryFn: () => api.bankrollSummary(wallet) });
   const betsQ = useQuery({ queryKey: ['bankroll-bets', wallet], queryFn: () => api.listBets(wallet) });
@@ -63,6 +76,7 @@ export function BankrollPage() {
           sub="Crie uma carteira por site/conta e registre apostas com a odd que a casa te deu. A carteira principal soma todas."
           action={
             <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setTourOpen(true)}>Como funciona</button>
               <button className="btn btn-ghost btn-sm" onClick={() => setEntryOpen(true)} disabled={!defaultWalletId}>+ Lançamento</button>
               <button className="btn btn-edge btn-sm" onClick={() => setBetOpen(true)} disabled={!defaultWalletId}>+ Registrar aposta</button>
             </div>
@@ -104,6 +118,7 @@ export function BankrollPage() {
         <EntryModal wallets={wallets} defaultWalletId={defaultWalletId} onClose={() => setEntryOpen(false)} onSaved={() => { setEntryOpen(false); refresh(); }} />
       )}
       {walletOpen && <WalletModal onClose={() => setWalletOpen(false)} onSaved={() => { setWalletOpen(false); refresh(); }} />}
+      {tourOpen && <WalletTour onClose={closeTour} />}
     </div>
   );
 }

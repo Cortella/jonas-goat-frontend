@@ -33,6 +33,7 @@ const ICONS = {
   finance: Icon('M3 3v18h18 M7 14l4-4 4 4 6-6'),
   orders: Icon('M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0'),
   reviews: Icon('M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 6.91-1.01L12 2z'),
+  suggestions: Icon('M9 18h6 M10 22h4 M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z'),
 };
 
 const NAV: NavItem[] = [
@@ -46,6 +47,7 @@ const NAV: NavItem[] = [
   { to: '/admin/notificacoes', label: 'Notificações', icon: ICONS.notifications },
   { to: '/admin/suporte', label: 'Suporte', icon: ICONS.support },
   { to: '/admin/avaliacoes', label: 'Avaliações', icon: ICONS.reviews },
+  { to: '/admin/sugestoes', label: 'Sugestões', icon: ICONS.suggestions },
   { to: '/admin/acessos', label: 'Acessos', icon: ICONS.access },
   { to: '/admin/atividade', label: 'Atividade', icon: ICONS.activity },
   { to: '/admin/seguranca', label: 'Segurança', icon: ICONS.security },

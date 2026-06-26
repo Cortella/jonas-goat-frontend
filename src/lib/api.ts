@@ -855,6 +855,28 @@ export interface AdminReview {
   avatar_url: string | null;
 }
 
+// ─── Sugestões / feedback dos usuários ──────────────────────────────────────
+export type SuggestionStatus = 'new' | 'reviewed' | 'archived';
+
+export interface OwnSuggestion {
+  id: number;
+  message: string;
+  status: SuggestionStatus;
+  created_at: string;
+}
+
+export interface AdminSuggestion {
+  id: number;
+  message: string;
+  status: SuggestionStatus;
+  created_at: string;
+  email: string;
+  plan: Plan;
+  author: string;
+  bankroll_brl: number | null;
+  subscription_days: number | null;
+}
+
 // ─── API surface ──────────────────────────────────────────────────────────
 export const api = {
   status: () => get<SystemStatus>('/api/status'),
@@ -1156,6 +1178,16 @@ export const api = {
   },
   adminModerateReview: (id: number, action: 'approve' | 'reject') =>
     post<{ id: number; status: ReviewStatus }>(`/api/admin/reviews/${id}/moderate`, { action }),
+
+  // sugestões / feedback
+  submitSuggestion: (message: string) => post<OwnSuggestion>('/api/suggestions', { message }),
+  mySuggestions: () => get<OwnSuggestion[]>('/api/suggestions/me'),
+  adminListSuggestions: (status?: SuggestionStatus) => {
+    const qs = status ? `?status=${status}` : '';
+    return get<AdminSuggestion[]>(`/api/admin/suggestions${qs}`);
+  },
+  adminSetSuggestionStatus: (id: number, status: SuggestionStatus) =>
+    post<{ id: number; status: SuggestionStatus }>(`/api/admin/suggestions/${id}/status`, { status }),
 };
 
 // ─── Admin types ──────────────────────────────────────────────────────────

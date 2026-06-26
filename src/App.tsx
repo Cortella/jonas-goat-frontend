@@ -43,6 +43,8 @@ import { EmailConfirmBanner } from './components/EmailConfirmBanner';
 import { AdminSupportPage } from './pages/AdminSupportPage';
 import { AdminReviewsPage } from './pages/AdminReviewsPage';
 import { SupportPage } from './pages/SupportPage';
+import { VisionPage } from './pages/VisionPage';
+import { AdminSuggestionsPage } from './pages/AdminSuggestionsPage';
 import { SupportBubble } from './components/SupportChat';
 import { SubscribeOffer } from './components/SubscribeOffer';
 
@@ -70,6 +72,8 @@ export function App() {
         <Route path="/metodologia" element={<MethodologyPage />} />
         <Route path="/copa-2026" element={<WorldCupPage />} />
         <Route path="/copa-2026/selecao/:slug" element={<SelecaoPage />} />
+        <Route path="/founders" element={<VisionPage />} />
+        <Route path="/visao" element={<Navigate to="/founders" replace />} />
 
         {/* Authenticated only */}
         <Route
@@ -247,6 +251,14 @@ export function App() {
           element={
             <AdminRoute>
               <AdminReviewsPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/sugestoes"
+          element={
+            <AdminRoute>
+              <AdminSuggestionsPage />
             </AdminRoute>
           }
         />

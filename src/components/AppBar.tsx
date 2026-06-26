@@ -11,11 +11,12 @@ import { api } from '../lib/api';
 import { SUPPORTED_LANGUAGES } from '../lib/i18n';
 import { LanguageSelector } from './LanguageSelector';
 
-interface NavItem { to: string; labelKey: string; emphasis?: 'cup'; affiliate?: boolean }
+interface NavItem { to: string; labelKey?: string; label?: string; emphasis?: 'cup'; affiliate?: boolean }
 const ITEMS: NavItem[] = [
   { to: '/copa-2026', labelKey: 'nav.cup', emphasis: 'cup' },
   { to: '/predictions', labelKey: 'nav.predictions' },
   { to: '/comparador', labelKey: 'nav.comparator' },
+  { to: '/founders', label: 'Founders' },
   { to: '/afiliados', labelKey: 'nav.affiliates', affiliate: true },
   { to: '/transparencia', labelKey: 'nav.transparency' },
 ];
@@ -105,7 +106,7 @@ export function AppBar() {
               }}
             >
               {isCup && <span aria-hidden style={{ fontSize: 14, lineHeight: 1 }}>🏆</span>}
-              {t(it.labelKey)}
+              {it.label ?? t(it.labelKey!)}
             </NavLink>
           );
         })}

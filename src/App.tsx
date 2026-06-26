@@ -1,55 +1,65 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeToggle } from './components/ThemeToggle';
 import { trackPageview } from './lib/analytics';
 import { AdminRoute, AuthProvider, ProtectedRoute } from './lib/auth';
-import { LandingPage } from './pages/LandingPage';
-import { PricingPage } from './pages/PricingPage';
-import { CheckoutPage } from './pages/CheckoutPage';
-import { CreditsPage } from './pages/CreditsPage';
-import { AdminOrdersPage } from './pages/AdminOrdersPage';
-import { OnboardingPage } from './pages/OnboardingPage';
-import { PredictionsPage } from './pages/PredictionsPage';
-import { AlertsPage } from './pages/AlertsPage';
-import { BankrollPage } from './pages/BankrollPage';
-import { ReviewsPage } from './pages/ReviewsPage';
-import { MethodologyPage } from './pages/MethodologyPage';
-import { MatchDetailPage } from './pages/MatchDetailPage';
-import { LiveMatchPage } from './pages/LiveMatchPage';
-import { WorldCupPage } from './pages/WorldCupPage';
-import { SelecaoPage } from './pages/SelecaoPage';
-import { LoginPage } from './pages/LoginPage';
-import { GoogleOnboardingPage } from './pages/GoogleOnboardingPage';
-import { SignupPage } from './pages/SignupPage';
-import { ThankYouPage } from './pages/ThankYouPage';
-import { TermsPage } from './pages/TermsPage';
-import { NotFoundPage } from './pages/NotFoundPage';
-import { AdminDashboardPage } from './pages/AdminDashboardPage';
-import { AdminUsersPage } from './pages/AdminUsersPage';
-import { AdminUserDetailPage } from './pages/AdminUserDetailPage';
-import { AdminSubscriptionsPage } from './pages/AdminSubscriptionsPage';
-import { AdminCommissionsPage } from './pages/AdminCommissionsPage';
-import { AdminNotificationsPage } from './pages/AdminNotificationsPage';
-import { AdminSettingsPage } from './pages/AdminSettingsPage';
-import { AdminPricingPage } from './pages/AdminPricingPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { AdminAccessLogsPage } from './pages/AdminAccessLogsPage';
-import { AdminActivityLogPage } from './pages/AdminActivityLogPage';
-import { AdminSecurityPage } from './pages/AdminSecurityPage';
-import { AdminFinancePage } from './pages/AdminFinancePage';
-import { ChangelogPage } from './pages/ChangelogPage';
-import { ConfirmEmailPage } from './pages/ConfirmEmailPage';
-import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
-import { ResetPasswordPage } from './pages/ResetPasswordPage';
+
+// Componentes sempre montados (fora das rotas) ficam eager.
 import { EmailConfirmBanner } from './components/EmailConfirmBanner';
-import { AdminSupportPage } from './pages/AdminSupportPage';
-import { AdminReviewsPage } from './pages/AdminReviewsPage';
-import { SupportPage } from './pages/SupportPage';
-import { VisionPage } from './pages/VisionPage';
-import { AdminSuggestionsPage } from './pages/AdminSuggestionsPage';
 import { SupportBubble } from './components/SupportChat';
 import { SubscribeOffer } from './components/SubscribeOffer';
 import { SubscriberTour } from './components/SubscriberTour';
+
+// LandingPage fica eager: é o destino principal dos anúncios (o LCP da
+// campanha) e não deve piscar um fallback de carregamento na primeira pintura.
+import { LandingPage } from './pages/LandingPage';
+
+// Demais páginas carregam sob demanda — cada uma vira um chunk separado. Tira
+// o bloco grande de páginas (sobretudo o admin) do bundle inicial, derrubando
+// o JS que o visitante baixa antes de ver a landing.
+const PricingPage = lazy(() => import('./pages/PricingPage').then((m) => ({ default: m.PricingPage })));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
+const CreditsPage = lazy(() => import('./pages/CreditsPage').then((m) => ({ default: m.CreditsPage })));
+const AdminOrdersPage = lazy(() => import('./pages/AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })));
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage').then((m) => ({ default: m.OnboardingPage })));
+const PredictionsPage = lazy(() => import('./pages/PredictionsPage').then((m) => ({ default: m.PredictionsPage })));
+const AlertsPage = lazy(() => import('./pages/AlertsPage').then((m) => ({ default: m.AlertsPage })));
+const BankrollPage = lazy(() => import('./pages/BankrollPage').then((m) => ({ default: m.BankrollPage })));
+const ReviewsPage = lazy(() => import('./pages/ReviewsPage').then((m) => ({ default: m.ReviewsPage })));
+const AchievementsPage = lazy(() => import('./pages/AchievementsPage').then((m) => ({ default: m.AchievementsPage })));
+const MethodologyPage = lazy(() => import('./pages/MethodologyPage').then((m) => ({ default: m.MethodologyPage })));
+const MatchDetailPage = lazy(() => import('./pages/MatchDetailPage').then((m) => ({ default: m.MatchDetailPage })));
+const LiveMatchPage = lazy(() => import('./pages/LiveMatchPage').then((m) => ({ default: m.LiveMatchPage })));
+const WorldCupPage = lazy(() => import('./pages/WorldCupPage').then((m) => ({ default: m.WorldCupPage })));
+const SelecaoPage = lazy(() => import('./pages/SelecaoPage').then((m) => ({ default: m.SelecaoPage })));
+const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
+const GoogleOnboardingPage = lazy(() => import('./pages/GoogleOnboardingPage').then((m) => ({ default: m.GoogleOnboardingPage })));
+const SignupPage = lazy(() => import('./pages/SignupPage').then((m) => ({ default: m.SignupPage })));
+const ThankYouPage = lazy(() => import('./pages/ThankYouPage').then((m) => ({ default: m.ThankYouPage })));
+const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })));
+const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })));
+const AdminUserDetailPage = lazy(() => import('./pages/AdminUserDetailPage').then((m) => ({ default: m.AdminUserDetailPage })));
+const AdminSubscriptionsPage = lazy(() => import('./pages/AdminSubscriptionsPage').then((m) => ({ default: m.AdminSubscriptionsPage })));
+const AdminCommissionsPage = lazy(() => import('./pages/AdminCommissionsPage').then((m) => ({ default: m.AdminCommissionsPage })));
+const AdminNotificationsPage = lazy(() => import('./pages/AdminNotificationsPage').then((m) => ({ default: m.AdminNotificationsPage })));
+const AdminSettingsPage = lazy(() => import('./pages/AdminSettingsPage').then((m) => ({ default: m.AdminSettingsPage })));
+const AdminPricingPage = lazy(() => import('./pages/AdminPricingPage').then((m) => ({ default: m.AdminPricingPage })));
+const ProfilePage = lazy(() => import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage })));
+const AdminAccessLogsPage = lazy(() => import('./pages/AdminAccessLogsPage').then((m) => ({ default: m.AdminAccessLogsPage })));
+const AdminActivityLogPage = lazy(() => import('./pages/AdminActivityLogPage').then((m) => ({ default: m.AdminActivityLogPage })));
+const AdminSecurityPage = lazy(() => import('./pages/AdminSecurityPage').then((m) => ({ default: m.AdminSecurityPage })));
+const AdminFinancePage = lazy(() => import('./pages/AdminFinancePage').then((m) => ({ default: m.AdminFinancePage })));
+const ChangelogPage = lazy(() => import('./pages/ChangelogPage').then((m) => ({ default: m.ChangelogPage })));
+const ConfirmEmailPage = lazy(() => import('./pages/ConfirmEmailPage').then((m) => ({ default: m.ConfirmEmailPage })));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })));
+const AdminSupportPage = lazy(() => import('./pages/AdminSupportPage').then((m) => ({ default: m.AdminSupportPage })));
+const AdminReviewsPage = lazy(() => import('./pages/AdminReviewsPage').then((m) => ({ default: m.AdminReviewsPage })));
+const SupportPage = lazy(() => import('./pages/SupportPage').then((m) => ({ default: m.SupportPage })));
+const VisionPage = lazy(() => import('./pages/VisionPage').then((m) => ({ default: m.VisionPage })));
+const AdminSuggestionsPage = lazy(() => import('./pages/AdminSuggestionsPage').then((m) => ({ default: m.AdminSuggestionsPage })));
 
 // Dispara um pageview a cada troca de rota (a SPA não recarrega a página, então
 // o GA4 não contaria as navegações seguintes sozinho).
@@ -61,12 +71,23 @@ function RouteTracker() {
   return null;
 }
 
+// Fallback enquanto o chunk da rota carrega. Discreto, no mesmo tom das outras
+// telas de carregamento do app.
+function RouteFallback() {
+  return (
+    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)' }}>
+      Carregando…
+    </div>
+  );
+}
+
 export function App() {
   return (
     <AuthProvider>
       <RouteTracker />
       <ThemeToggle />
       <EmailConfirmBanner />
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
@@ -121,6 +142,14 @@ export function App() {
           element={
             <ProtectedRoute>
               <ReviewsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/conquistas"
+          element={
+            <ProtectedRoute>
+              <AchievementsPage />
             </ProtectedRoute>
           }
         />
@@ -305,6 +334,7 @@ export function App() {
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </Suspense>
       <SupportBubble />
       <SubscribeOffer />
       <SubscriberTour />

@@ -923,6 +923,23 @@ export interface AdminSuggestion {
   subscription_days: number | null;
 }
 
+export interface Achievement {
+  id: string;
+  icon: string;
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+  title: string;
+  description: string;
+  progress: number;
+  target: number;
+  unlocked: boolean;
+}
+
+export interface AchievementsResponse {
+  unlocked_count: number;
+  total_count: number;
+  achievements: Achievement[];
+}
+
 export interface GoogleOnboardNeeded {
   needs_onboarding: true;
   email: string;
@@ -980,6 +997,7 @@ export const api = {
   setPreferences: (body: Partial<Preferences>) => put<Preferences>('/api/preferences', body),
   markOnboarded: () => post<{ ok: boolean }>('/api/preferences/onboarded', {}),
   markProOnboarded: () => post<{ ok: boolean }>('/api/preferences/onboarded-pro', {}),
+  achievements: () => get<AchievementsResponse>('/api/achievements'),
   gameSuggestions: () => get<SuggestionsResponse>('/api/predictions/suggestions'),
   setSuggestionsEnabled: (enabled: boolean) =>
     post<{ ok: boolean; suggestions_enabled: boolean }>('/api/preferences/suggestions', { enabled }),

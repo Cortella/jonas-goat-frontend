@@ -5,27 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/logo.png" />
 
-    <!-- Default meta — react-helmet-async overrides per page -->
+    <!-- Default title — react-helmet-async sobrescreve por página. description,
+         canonical e og:url/title/description NÃO ficam aqui de propósito: são
+         definidos pelo <Seo> por página (e bakeados no prerender), senão ficam
+         DUPLICADOS/conflitantes nas rotas pré-renderizadas. -->
     <title>Jonas Goat — Vantagem matemática sobre as casas de apostas</title>
-    <meta
-      name="description"
-      content="Jonas Goat usa três modelos estatísticos rodando em ensemble (Dixon-Coles, ELO, Bayesian) para encontrar value bets reais em odds de bookmakers. Não é palpite — é matemática aplicada às Top 5 ligas europeias e à Copa do Mundo 2026."
-    />
     <meta name="keywords" content="value bets, previsões de futebol, odds, ensemble, Dixon-Coles, ELO, apostas esportivas, futebol brasil" />
     <meta name="author" content="Jonas Goat" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
-    <link rel="canonical" href="https://www.jonasgoat.com/" />
 
-    <!-- Open Graph -->
+    <!-- Open Graph (genéricos; og:url/title/description vêm do <Seo>) -->
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="pt_BR" />
     <meta property="og:site_name" content="Jonas Goat" />
-    <meta property="og:url" content="https://www.jonasgoat.com/" />
-    <meta property="og:title" content="Jonas Goat — Vantagem matemática sobre o mercado de apostas" />
-    <meta
-      property="og:description"
-      content="Três modelos estatísticos em ensemble identificam value bets onde a probabilidade real é maior que a implícita nas odds. Análise transparente de Premier League, La Liga, Bundesliga, Serie A, Ligue 1, UCL e Copa 2026."
-    />
     <meta property="og:image" content="https://www.jonasgoat.com/logo.png" />
     <meta property="og:image:alt" content="Jonas Goat" />
 

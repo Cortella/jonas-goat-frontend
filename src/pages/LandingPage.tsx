@@ -12,7 +12,7 @@ import {
 } from '../components/atoms';
 import { Seo } from '../components/Seo';
 import { useAuth } from '../lib/auth';
-import { api } from '../lib/api';
+import { api, type ReviewsResponse } from '../lib/api';
 import { LanguageSelector } from '../components/LanguageSelector';
 import type { Prediction } from '../lib/types';
 
@@ -77,6 +77,8 @@ export function LandingPage() {
   const sym = pricingQ.data?.prices.symbol ?? '$';
   const px = (v: number | null | undefined) =>
     v == null ? '—' : `${sym}${Number.isInteger(v) ? v : v.toFixed(2)}`;
+  // Avaliações reais (prova social pública) — embasam o aggregateRating do schema.
+  const reviewsQ = useQuery({ queryKey: ['public-reviews'], queryFn: () => api.reviews(), staleTime: 5 * 60_000 });
 
   const live: Prediction[] = (predsQ.data?.predictions ?? []).slice(0, 4);
   const discount = settingsQ.data?.referral_discount_pct ?? 10;
@@ -113,14 +115,55 @@ export function LandingPage() {
 
   // FAQPage JSON-LD: usa as mesmas perguntas exibidas abaixo (Google exige que
   // o schema bata com o conteúdo visível). Habilita rich result de FAQ na busca.
+  // Product com aggregateRating/review SÓ quando há avaliações reais (política
+  // do Google — nota precisa refletir reviews reais e visíveis na página).
+  const rvCount = Number(reviewsQ.data?.count ?? 0);
+  const rvAvg = Number(reviewsQ.data?.average ?? 0);
+  const productNode: Record<string, unknown> = {
+    '@type': 'Product',
+    '@id': 'https://www.jonasgoat.com/#product',
+    name: 'Jonas Goat — assinatura Pro',
+    description: 'Análises e previsões com value bets para Top 5 ligas + UCL + Copa do Mundo 2026.',
+    image: 'https://www.jonasgoat.com/logo.png',
+    brand: { '@id': 'https://www.jonasgoat.com/#organization' },
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'BRL',
+      price: '49.00',
+      url: 'https://www.jonasgoat.com/precos',
+      availability: 'https://schema.org/InStock',
+      priceValidUntil: '2026-12-31',
+    },
+  };
+  if (rvCount > 0 && rvAvg > 0) {
+    productNode.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: String(rvAvg),
+      reviewCount: String(rvCount),
+      bestRating: '5',
+      worstRating: '1',
+    };
+    productNode.review = (reviewsQ.data?.reviews ?? []).slice(0, 5).map((r) => ({
+      '@type': 'Review',
+      author: { '@type': 'Person', name: r.author },
+      datePublished: r.created_at,
+      reviewRating: { '@type': 'Rating', ratingValue: String(r.rating), bestRating: '5', worstRating: '1' },
+      reviewBody: r.comment,
+    }));
+  }
   const faqSchema = {
     '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: FAQ.map((f) => ({
-      '@type': 'Question',
-      name: f.q,
-      acceptedAnswer: { '@type': 'Answer', text: f.a },
-    })),
+    '@graph': [
+      {
+        '@type': 'FAQPage',
+        mainEntity: FAQ.map((f) => ({
+          '@type': 'Question',
+          name: f.q,
+          acceptedAnswer: { '@type': 'Answer', text: f.a },
+        })),
+      },
+      productNode,
+    ],
   };
 
   return (
@@ -365,6 +408,9 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* ─── Prova social (avaliações reais) ──────────────────────── */}
+      <ReviewsProof data={reviewsQ.data} />
+
       {/* ─── FAQ ──────────────────────────────────────────────────── */}
       <section id="faq" className="landing-section" style={{ borderTop: '1px solid var(--line)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 64 }}>
@@ -427,6 +473,42 @@ export function LandingPage() {
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────
+
+// Prova social pública: nota média + nº de avaliações + depoimentos reais.
+// Só renderiza com avaliações reais (embasa o aggregateRating do schema e
+// respeita a política do Google). O ENVIO segue só na área logada (/avaliacoes).
+function ReviewsProof({ data }: Readonly<{ data?: ReviewsResponse }>) {
+  const count = Number(data?.count ?? 0);
+  const avg = Number(data?.average ?? 0);
+  if (!data || count === 0) return null;
+  const top = (data.reviews ?? []).filter((r) => r.comment?.trim()).slice(0, 3);
+  const stars = (n: number) => '★★★★★'.slice(0, Math.round(n)) + '☆☆☆☆☆'.slice(0, 5 - Math.round(n));
+  return (
+    <section className="landing-section" style={{ borderTop: '1px solid var(--line)' }}>
+      <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        <div style={{ fontSize: 22, color: 'var(--edge)', letterSpacing: 2 }}>{stars(avg)}</div>
+        <div style={{ fontSize: 15, color: 'var(--text-2)', marginTop: 6 }}>
+          <strong style={{ color: 'var(--text)', fontFamily: 'var(--mono)' }}>{avg.toFixed(1)}</strong> de 5 ·{' '}
+          {count} {count === 1 ? 'avaliação' : 'avaliações'} de assinantes
+        </div>
+      </div>
+      {top.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, maxWidth: 1000, margin: '0 auto' }}>
+          {top.map((r) => (
+            <div key={r.id} className="surface" style={{ padding: 18 }}>
+              <div style={{ color: 'var(--edge)', fontSize: 13, letterSpacing: 1 }}>{stars(r.rating)}</div>
+              <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.55, margin: '8px 0 10px' }}>“{r.comment}”</p>
+              <div style={{ fontSize: 12, fontWeight: 600 }}>{r.author}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ textAlign: 'center', marginTop: 20 }}>
+        <Link to="/avaliacoes" style={{ color: 'var(--edge)', fontSize: 13 }}>Ver todas as avaliações →</Link>
+      </div>
+    </section>
+  );
+}
 
 function ReferralBanner({
   sponsorName,

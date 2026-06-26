@@ -2,47 +2,34 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 
-// Oferta flutuante "Vire Founder" — fica fixa no canto inferior esquerdo em
-// TODA tela para quem ainda não assina (visitante ou plano free). Um clique
-// leva direto ao checkout de Founder (campanha de 100 vagas). Some assim que o
-// usuário vira pro/founders.
-// Canto esquerdo pra não colidir com o SupportBubble (canto direito).
+// Oferta flutuante "Vire Founder" — canto inferior esquerdo, para quem ainda
+// não assina (visitante ou plano free). Some quando vira pro/founders.
+// Ao FECHAR (X), é dispensada de vez (lembrada no localStorage) para não ficar
+// insistindo com o usuário. Canto esquerdo pra não colidir com o SupportBubble.
 
-// Telas onde a oferta seria redundante (a própria página já é a conversão).
 const HIDDEN_PATHS = new Set(['/checkout', '/precos', '/login', '/signup']);
+const DISMISS_KEY = 'jg_offer_dismissed';
 
 export function SubscribeOffer() {
   const { user } = useAuth();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem(DISMISS_KEY) === '1'; } catch { return false; }
+  });
 
-  // Já é assinante pagante → nada a oferecer.
+  // Já é assinante pagante, já fechou, ou está numa tela de conversão → nada.
   if (user && user.plan !== 'free') return null;
+  if (dismissed) return null;
   if (HIDDEN_PATHS.has(location.pathname)) return null;
 
   // Visitante deslogado não consegue ir ao checkout (rota protegida): manda
   // pro cadastro, que já encaminha pra escolha de plano.
   const to = user ? '/checkout?plan=founders&cycle=lifetime' : '/signup';
 
-  if (collapsed) {
-    return (
-      <Link
-        to={to}
-        aria-label="Vire Founder"
-        style={{
-          position: 'fixed', left: 24, bottom: 24, zIndex: 100,
-          background: 'var(--edge)', color: 'oklch(0.16 0.006 240)',
-          borderRadius: 999, width: 48, height: 48,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          textDecoration: 'none', fontSize: 22,
-          boxShadow: '0 4px 12px oklch(0 0 0 / 0.3)',
-        }}
-        title="Vire Founder · 100 vagas"
-      >
-        🐐
-      </Link>
-    );
-  }
+  const dismiss = () => {
+    try { localStorage.setItem(DISMISS_KEY, '1'); } catch { /* ignore */ }
+    setDismissed(true);
+  };
 
   return (
     <div
@@ -73,8 +60,9 @@ export function SubscribeOffer() {
       </Link>
       <button
         type="button"
-        onClick={() => setCollapsed(true)}
-        aria-label="Minimizar oferta"
+        onClick={dismiss}
+        aria-label="Fechar oferta"
+        title="Fechar"
         style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 16, padding: '0 2px', alignSelf: 'flex-start' }}
       >
         ×

@@ -546,6 +546,15 @@ export interface BankrollSummary {
   roi: number;
 }
 
+export interface BankrollEntry {
+  id: number;
+  kind: 'deposit' | 'withdraw' | 'adjust';
+  amount: number;
+  balance_after: number;
+  note: string | null;
+  created_at: string;
+}
+
 // ─── Support tickets ──────────────────────────────────────────────────────
 export type TicketCategory = 'billing' | 'account' | 'technical' | 'feature' | 'other';
 export type TicketStatus = 'open' | 'waiting_user' | 'resolved' | 'closed';
@@ -936,6 +945,10 @@ export const api = {
   settleBet: (id: number, body: { result: 'win' | 'loss' | 'push'; payout?: number }) =>
     post<Bet>(`/api/bankroll/bets/${id}/settle`, body),
   deleteBet: (id: number) => del<void>(`/api/bankroll/bets/${id}`),
+  listBankrollEntries: (limit = 100) =>
+    get<BankrollEntry[]>(`/api/bankroll/entries?limit=${limit}`),
+  createBankrollEntry: (body: { kind: 'deposit' | 'withdraw' | 'adjust'; amount: number; note?: string | null }) =>
+    post<BankrollEntry>('/api/bankroll/entries', body),
 
   // world cup
   worldCup: () => get<WCOutlook>('/api/world-cup'),

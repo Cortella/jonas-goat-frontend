@@ -208,6 +208,7 @@ function UserMenu({ onLogout }: Readonly<{ onLogout: () => void }>) {
 
           <MenuItem icon="💳" label="Meus créditos" onClick={() => go('/creditos')} />
           <MenuItem icon="📊" label="Bankroll" onClick={() => go('/bankroll')} />
+          <MenuItem icon="⭐" label="Avaliações" onClick={() => go('/avaliacoes')} />
           <MenuItem icon="💬" label="Suporte" onClick={() => go('/suporte')} />
           <MenuItem icon="✏️" label="Alterar dados" onClick={() => go('/perfil')} />
           <div style={{ borderTop: '1px solid var(--line)', margin: '6px 0' }} />

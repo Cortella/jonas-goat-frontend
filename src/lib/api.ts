@@ -916,6 +916,13 @@ export interface AdminSuggestion {
   subscription_days: number | null;
 }
 
+export interface GoogleOnboardNeeded {
+  needs_onboarding: true;
+  email: string;
+  name: string | null;
+  pending: string;
+}
+
 // ─── API surface ──────────────────────────────────────────────────────────
 export const api = {
   status: () => get<SystemStatus>('/api/status'),
@@ -936,6 +943,10 @@ export const api = {
   signup: (body: SignupBody) => post<AuthResponse>('/api/auth/signup', body),
   login: (body: { email: string; password: string }) => post<AuthResponse>('/api/auth/login', body),
   logout: () => post<{ ok: boolean }>('/api/auth/logout', {}),
+  googleAuth: (credential: string) =>
+    post<AuthResponse | GoogleOnboardNeeded>('/api/auth/google', { credential }),
+  googleComplete: (body: { pending: string; full_name: string; cpf: string; birth_date: string; country?: string | null; terms_accepted: true }) =>
+    post<AuthResponse>('/api/auth/google/complete', body),
   me: async () => {
     // O backend reemite o token a cada /me (sessão deslizante) — guardamos o
     // novo para o Bearer do localStorage também nunca expirar.

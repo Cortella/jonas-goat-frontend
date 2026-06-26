@@ -10,12 +10,14 @@ import { OnboardingPage } from './pages/OnboardingPage';
 import { PredictionsPage } from './pages/PredictionsPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { BankrollPage } from './pages/BankrollPage';
+import { ReviewsPage } from './pages/ReviewsPage';
 import { MethodologyPage } from './pages/MethodologyPage';
 import { MatchDetailPage } from './pages/MatchDetailPage';
 import { LiveMatchPage } from './pages/LiveMatchPage';
 import { WorldCupPage } from './pages/WorldCupPage';
 import { SelecaoPage } from './pages/SelecaoPage';
 import { LoginPage } from './pages/LoginPage';
+import { GoogleOnboardingPage } from './pages/GoogleOnboardingPage';
 import { SignupPage } from './pages/SignupPage';
 import { TermsPage } from './pages/TermsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -55,6 +57,7 @@ export function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/precos" element={<PricingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/cadastro-google" element={<GoogleOnboardingPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/termos" element={<TermsPage />} />
         <Route path="/atualizacoes" element={<ChangelogPage />} />
@@ -95,6 +98,14 @@ export function App() {
           element={
             <ProtectedRoute>
               <BankrollPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/avaliacoes"
+          element={
+            <ProtectedRoute>
+              <ReviewsPage />
             </ProtectedRoute>
           }
         />

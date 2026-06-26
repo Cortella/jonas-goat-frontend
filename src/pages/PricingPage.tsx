@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Seo } from '../components/Seo';
 import { api } from '../lib/api';
+import { trackEvent } from '../lib/analytics';
 
 interface Plan {
   name: string;
@@ -30,6 +31,17 @@ export function PricingPage() {
   const sym = pq.data?.prices.symbol ?? '$';
   const fmt = (v: number | null | undefined) => (v == null ? '—' : `${sym}${Number.isInteger(v) ? v : v.toFixed(2)}`);
   const proPrice = yearly ? pq.data?.plans.pro_yearly : pq.data?.plans.pro_monthly;
+
+  // Visualização da lista de planos — sinal de funil para o Google Ads.
+  const loadedCurrency = pq.data?.currency;
+  useEffect(() => {
+    if (!loadedCurrency) return;
+    trackEvent('view_item_list', {
+      item_list_name: 'pricing',
+      currency: loadedCurrency,
+      items: [{ item_id: 'pro' }, { item_id: 'founders' }, { item_id: 'free' }],
+    });
+  }, [loadedCurrency]);
 
   const plans: Plan[] = [
     {
@@ -89,12 +101,41 @@ export function PricingPage() {
     },
   ];
 
+  // Product + Offers JSON-LD: dá ao Google os preços reais dos planos (rich
+  // result de produto/preço). Só quando os preços já carregaram do backend.
+  const offerCurrency = pq.data?.currency ?? 'BRL';
+  const pricingSchema = pq.data
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: 'Jonas Goat Pro',
+        description:
+          'Assinatura com previsões ilimitadas de futebol por modelos estatísticos em ensemble — Top 5 ligas + UCL + Copa do Mundo 2026.',
+        brand: { '@type': 'Brand', name: 'Jonas Goat' },
+        offers: [
+          { name: 'Pro mensal', price: pq.data.plans.pro_monthly },
+          { name: 'Pro anual', price: pq.data.plans.pro_yearly },
+          { name: 'Founders', price: pq.data.plans.founders },
+        ]
+          .filter((o): o is { name: string; price: number } => o.price != null)
+          .map((o) => ({
+            '@type': 'Offer',
+            name: o.name,
+            price: o.price,
+            priceCurrency: offerCurrency,
+            availability: 'https://schema.org/InStock',
+            url: 'https://www.jonasgoat.com/precos',
+          })),
+      }
+    : undefined;
+
   return (
     <div style={{ padding: '64px 48px', background: 'var(--bg)', maxWidth: 1280, margin: '0 auto' }}>
       <Seo
         title="Planos Free, Pro e Founders"
         description="Free: carteira e registro de apostas. Pro: previsões ilimitadas. Founders: 100 vagas com 3 anos de acesso total, menu exclusivo, grupo VIP no WhatsApp, selo de fundador e créditos vitalícios. Preço em R$ no Brasil, em US$ nos demais países."
         path="/precos"
+        schema={pricingSchema}
       />
       <div style={{ textAlign: 'center', marginBottom: 56 }}>
         <div className="t-eyebrow" style={{ marginBottom: 12 }}>{t('pricing.eyebrow')}</div>

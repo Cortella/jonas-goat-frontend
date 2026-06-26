@@ -2,26 +2,37 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
+// Só o português entra no bundle inicial (idioma-base/fallback). Os outros 19
+// idiomas são carregados sob demanda (ver loadLanguage) — cada locale vira um
+// chunk separado, em vez de ~280KB de JSON embutidos no bundle principal.
 import pt from '../locales/pt.json';
-import en from '../locales/en.json';
-import zh from '../locales/zh.json';
-import hi from '../locales/hi.json';
-import es from '../locales/es.json';
-import fr from '../locales/fr.json';
-import ar from '../locales/ar.json';
-import bn from '../locales/bn.json';
-import ru from '../locales/ru.json';
-import id from '../locales/id.json';
-import de from '../locales/de.json';
-import ja from '../locales/ja.json';
-import ko from '../locales/ko.json';
-import it from '../locales/it.json';
-import tr from '../locales/tr.json';
-import vi from '../locales/vi.json';
-import pl from '../locales/pl.json';
-import uk from '../locales/uk.json';
-import nl from '../locales/nl.json';
-import th from '../locales/th.json';
+
+// Loaders preguiçosos de cada locale. import.meta.glob devolve um mapa
+// caminho→() => import(), que o Vite transforma em chunks dinâmicos.
+const localeModules = import.meta.glob('../locales/*.json');
+const localeLoaders: Record<string, () => Promise<unknown>> = {};
+for (const [filePath, loader] of Object.entries(localeModules)) {
+  const code = /\/([a-z]{2})\.json$/.exec(filePath)?.[1];
+  if (code && code !== 'pt') localeLoaders[code] = loader;
+}
+
+const loadedLocales = new Set<string>(['pt']);
+
+/**
+ * Garante que o bundle de tradução do idioma esteja carregado. No-op para o
+ * pt (já embutido) e para idiomas sem arquivo. Idempotente.
+ */
+export async function loadLanguage(lng: string): Promise<void> {
+  const code = lng?.split('-')[0];
+  if (!code || loadedLocales.has(code) || !localeLoaders[code]) return;
+  try {
+    const mod = (await localeLoaders[code]()) as { default: Record<string, unknown> };
+    i18n.addResourceBundle(code, 'translation', mod.default, true, true);
+    loadedLocales.add(code);
+  } catch {
+    // Falha de rede no chunk → segue no fallback (pt). Não quebra a UI.
+  }
+}
 
 // Country → language mapping for IP-based detection
 export const COUNTRY_LANG: Record<string, string> = {
@@ -121,28 +132,11 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
+    // Só o pt embutido; os demais entram via loadLanguage (addResourceBundle).
     resources: {
       pt: { translation: pt },
-      en: { translation: en },
-      zh: { translation: zh },
-      hi: { translation: hi },
-      es: { translation: es },
-      fr: { translation: fr },
-      ar: { translation: ar },
-      bn: { translation: bn },
-      ru: { translation: ru },
-      id: { translation: id },
-      de: { translation: de },
-      ja: { translation: ja },
-      ko: { translation: ko },
-      it: { translation: it },
-      tr: { translation: tr },
-      vi: { translation: vi },
-      pl: { translation: pl },
-      uk: { translation: uk },
-      nl: { translation: nl },
-      th: { translation: th },
     },
+    partialBundledLanguages: true,
     fallbackLng: 'pt',
     detection: {
       // querystring (?lng=xx) primeiro → permite URLs por idioma (hreflang/SEO).
@@ -155,5 +149,12 @@ i18n
     supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
     react: { useSuspense: false },
   });
+
+// Carrega o bundle do idioma sempre que ele muda (seletor de idioma, detecção
+// por IP etc.) e já dispara o do idioma inicial detectado no init.
+i18n.on('languageChanged', (lng) => {
+  void loadLanguage(lng);
+});
+void loadLanguage(i18n.language);
 
 export default i18n;

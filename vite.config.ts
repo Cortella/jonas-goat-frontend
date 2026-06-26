@@ -13,5 +13,9 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: true,
+    // es2019: transpila optional chaining (?.) e nullish (??) para baixo. Sem
+    // isso o Chromium antigo do react-snap (prerender) quebra com SyntaxError,
+    // e ainda amplia a compatibilidade com navegadores mais velhos.
+    target: "es2019",
   },
 });

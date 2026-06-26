@@ -13,6 +13,7 @@ import {
   type Plan,
 } from '../lib/api';
 import { money } from '../lib/money';
+import { trackEvent } from '../lib/analytics';
 
 
 const METHOD_LABEL: Record<PaymentMethod, string> = {
@@ -186,6 +187,12 @@ export function CheckoutPage() {
             ? { holder: cardHolder, last4: cardNumber.replace(/\D/g, '').slice(-4) }
             : undefined,
       });
+      // Início de checkout — sinal de funil para o Google otimizar lances.
+      trackEvent('begin_checkout', {
+        currency: 'BRL',
+        value: o.amount_brl,
+        items: [{ item_id: kind === 'plan' ? plan : packageId, item_category: kind }],
+      });
       // Gateway hospedado (ex.: Stripe Checkout): redireciona para a página
       // segura do provedor. A confirmação volta pelo webhook.
       if (o.checkout_url && o.status !== 'paid') {
@@ -200,10 +207,11 @@ export function CheckoutPage() {
     }
   };
 
-  // Depois de pagar, leva pra Copa já logado (refresh reflete o plano novo).
+  // Depois de pagar, leva para a página de obrigado (destino de conversão do
+  // Google Ads), já logado — refresh reflete o plano novo.
   const finish = async () => {
     await refresh();
-    navigate('/copa-2026');
+    navigate(order ? `/obrigado?order=${order.id}` : '/copa-2026');
   };
 
   // ── Tela de pagamento (Pix/QR/processando/sucesso) ──
@@ -539,10 +547,10 @@ function PayStep({ order, gateway, onDone }: { order: Order; gateway: string; on
             : `Créditos adicionados à sua carteira.`}
         </p>
         <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 8 }}>
-          {redirecting ? 'Te levando para a Copa 2026…' : ''}
+          {redirecting ? 'Confirmando sua assinatura…' : ''}
         </p>
         <button className="btn btn-edge" style={{ marginTop: 20, padding: '11px 22px', fontWeight: 700 }} onClick={onDone}>
-          Ir para a Copa 2026 →
+          Continuar →
         </button>
       </div>
     );

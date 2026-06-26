@@ -44,6 +44,7 @@ import { AdminSupportPage } from './pages/AdminSupportPage';
 import { AdminReviewsPage } from './pages/AdminReviewsPage';
 import { SupportPage } from './pages/SupportPage';
 import { SupportBubble } from './components/SupportChat';
+import { SubscribeOffer } from './components/SubscribeOffer';
 
 export function App() {
   return (
@@ -266,6 +267,7 @@ export function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <SupportBubble />
+      <SubscribeOffer />
     </AuthProvider>
   );
 }

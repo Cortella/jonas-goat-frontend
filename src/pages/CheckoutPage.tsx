@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Logo } from '../components/atoms';
@@ -7,7 +7,6 @@ import { useAuth } from '../lib/auth';
 import {
   api,
   type BillingCycle,
-  type CheckoutConfig,
   type CreditPackage,
   type Order,
   type PaymentMethod,
@@ -23,13 +22,23 @@ const METHOD_LABEL: Record<PaymentMethod, string> = {
   card: 'Cartão de crédito',
 };
 
+const METHOD_HINT: Record<PaymentMethod, string> = {
+  pix: 'Aprovação na hora, sem taxas.',
+  pix_recurring: 'Renova sozinho todo período, com desconto.',
+  card: 'Visa, Master, Elo, Amex. Renovação automática.',
+};
+
+const METHOD_ICON: Record<PaymentMethod, string> = {
+  pix: '⚡',
+  pix_recurring: '🔁',
+  card: '💳',
+};
+
 const CYCLE_LABEL: Record<BillingCycle, string> = {
   monthly: 'Mensal',
   yearly: 'Anual',
   lifetime: 'Vitalício',
 };
-
-type Step = 'select' | 'identity' | 'payment' | 'pay';
 
 export function CheckoutPage() {
   const [params] = useSearchParams();
@@ -50,7 +59,6 @@ export function CheckoutPage() {
   const [cardHolder, setCardHolder] = useState('');
   const [cardNumber, setCardNumber] = useState('');
 
-  const [step, setStep] = useState<Step>('select');
   const [order, setOrder] = useState<Order | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +77,19 @@ export function CheckoutPage() {
     if (kind === 'credits' && method === 'pix_recurring') setMethod('pix');
     if (kind === 'plan' && cycle === 'lifetime' && method === 'pix_recurring') setMethod('pix');
   }, [kind, cycle, method]);
+
+  // Volta do Stripe hospedado (?status=success|cancel&order=ID). No sucesso,
+  // carrega o pedido e deixa o PayStep aguardar a confirmação do webhook e
+  // então redirecionar para a Copa. No cancelamento, mostra aviso.
+  const returnStatus = params.get('status');
+  const returnOrder = params.get('order');
+  useEffect(() => {
+    if (returnStatus === 'success' && returnOrder) {
+      api.getOrder(Number(returnOrder)).then(setOrder).catch(() => {});
+    } else if (returnStatus === 'cancel') {
+      setError('Pagamento cancelado. Você pode tentar novamente.');
+    }
+  }, [returnStatus, returnOrder]);
 
   if (!config) {
     return (
@@ -113,6 +134,14 @@ export function CheckoutPage() {
     ? round2(selectedPackage.price_brl + selectedPackage.bonus_brl)
     : 0;
 
+  const cpfDigits = document.replace(/\D/g, '');
+  const cardOk = method !== 'card' || (cardHolder.trim().length > 2 && cardNumber.replace(/\D/g, '').length >= 13);
+  const canPay = base > 0 && cpfDigits.length === 11 && cardOk && !creating;
+
+  const availableMethods = config.payment_methods
+    .filter((m) => !(kind === 'credits' && m === 'pix_recurring'))
+    .filter((m) => !(kind === 'plan' && cycle === 'lifetime' && m === 'pix_recurring'));
+
   const submit = async () => {
     setError(null);
     setCreating(true);
@@ -123,7 +152,7 @@ export function CheckoutPage() {
         billing_cycle: kind === 'plan' ? cycle : undefined,
         package_id: kind === 'credits' ? packageId : undefined,
         payment_method: method,
-        document_number: document.replace(/\D/g, ''),
+        document_number: cpfDigits,
         use_wallet: kind === 'plan' ? useWallet : false,
         card:
           method === 'card'
@@ -137,7 +166,6 @@ export function CheckoutPage() {
         return;
       }
       setOrder(o);
-      setStep('pay');
     } catch (e) {
       setError((e as Error).message || 'Falha ao criar pedido');
     } finally {
@@ -145,188 +173,179 @@ export function CheckoutPage() {
     }
   };
 
+  // Depois de pagar, leva pra Copa já logado (refresh reflete o plano novo).
+  const finish = async () => {
+    await refresh();
+    navigate('/copa-2026');
+  };
+
+  // ── Tela de pagamento (Pix/QR/processando/sucesso) ──
+  if (order) {
+    return (
+      <Shell>
+        <Seo title="Checkout" description="Finalize sua compra" path="/checkout" noindex />
+        <div style={{ maxWidth: 920, margin: '0 auto', padding: '32px 24px 80px' }}>
+          <PayStep order={order} gateway={config.gateway} onDone={finish} />
+        </div>
+      </Shell>
+    );
+  }
+
+  const planObj = config.plans.find((p) => p.plan === plan);
+
   return (
     <Shell>
       <Seo title="Checkout" description="Finalize sua compra" path="/checkout" noindex />
-      <div style={{ maxWidth: 920, margin: '0 auto', padding: '32px 24px 80px' }}>
-        <Steps current={step} />
+      <style>{`
+        .co-grid { display:grid; grid-template-columns: minmax(0,1fr) 380px; gap:24px; align-items:start; }
+        @media (max-width: 880px){ .co-grid{ grid-template-columns:1fr; } .co-summary{ position:static !important; } }
+      `}</style>
 
-        {step === 'select' && (
-          <div className="surface" style={{ padding: 28 }}>
-            <SectionTitle title={kind === 'plan' ? 'Escolha seu plano' : 'Carregar créditos'} />
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-              <Toggle on={kind === 'plan'} onClick={() => setKind('plan')}>Planos</Toggle>
-              <Toggle on={kind === 'credits'} onClick={() => setKind('credits')}>Créditos</Toggle>
-            </div>
+      <div style={{ maxWidth: 1040, margin: '0 auto', padding: '28px 20px 90px' }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: '0 0 4px' }}>Finalize sua assinatura</h1>
+        <p style={{ color: 'var(--text-2)', fontSize: 14, margin: '0 0 24px' }}>
+          Leva menos de 1 minuto. Acesso liberado na hora.
+        </p>
 
-            {kind === 'plan' ? (
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  {config.plans.map((p) => (
-                    <button
-                      key={p.plan}
-                      onClick={() => {
-                        setPlan(p.plan);
-                        const cycles = p.cycles.map((c) => c.cycle);
-                        if (!cycles.includes(cycle)) setCycle(cycles[0]);
-                      }}
-                      className="surface"
-                      style={{
-                        textAlign: 'left',
-                        padding: 18,
-                        cursor: 'pointer',
-                        background: plan === p.plan ? 'var(--edge-soft)' : 'var(--bg-2)',
-                        border: `1px solid ${plan === p.plan ? 'var(--edge)' : 'var(--line)'}`,
-                      }}
-                    >
-                      <div style={{ fontWeight: 600, textTransform: 'capitalize' }}>{p.plan}</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                        a partir de {BRL(Math.min(...p.cycles.map((c) => c.price_brl)))}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {config.plans
-                    .find((p) => p.plan === plan)
-                    ?.cycles.map((c) => (
+        <div className="co-grid">
+          {/* ─── Coluna do formulário ─── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* 1. O que você leva */}
+            <Card>
+              <StepHead n={1} title={kind === 'plan' ? 'Escolha seu plano' : 'Carregar créditos'} />
+              <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+                <Toggle on={kind === 'plan'} onClick={() => setKind('plan')}>Planos</Toggle>
+                <Toggle on={kind === 'credits'} onClick={() => setKind('credits')}>Créditos</Toggle>
+              </div>
+
+              {kind === 'plan' ? (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    {config.plans.map((p) => {
+                      const from = Math.min(...p.cycles.map((c) => c.price_brl));
+                      return (
+                        <Selectable
+                          key={p.plan}
+                          active={plan === p.plan}
+                          onClick={() => {
+                            setPlan(p.plan);
+                            const cycles = p.cycles.map((c) => c.cycle);
+                            if (!cycles.includes(cycle)) setCycle(cycles[0]);
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, textTransform: 'capitalize', fontSize: 15 }}>{p.plan}</div>
+                          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+                            a partir de {BRL(from)}
+                          </div>
+                        </Selectable>
+                      );
+                    })}
+                  </div>
+                  <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {planObj?.cycles.map((c) => (
                       <Toggle key={c.cycle} on={cycle === c.cycle} onClick={() => setCycle(c.cycle)}>
                         {CYCLE_LABEL[c.cycle]} · {BRL(c.price_brl)}
                       </Toggle>
                     ))}
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                  {config.credit_packages.map((pk) => (
+                    <Selectable key={pk.id} active={packageId === pk.id} onClick={() => setPackageId(pk.id)}>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700 }}>
+                        {BRL(pk.price_brl + pk.bonus_brl)}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+                        paga {BRL(pk.price_brl)}
+                        {pk.bonus_brl > 0 && (
+                          <span style={{ color: 'var(--edge)' }}> · +{BRL(pk.bonus_brl)} bônus</span>
+                        )}
+                      </div>
+                    </Selectable>
+                  ))}
                 </div>
-              </>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                {config.credit_packages.map((pk) => (
+              )}
+            </Card>
+
+            {/* 2. Identidade */}
+            <Card>
+              <StepHead n={2} title="Seus dados" sub="Confirme seu CPF para emitir o pagamento." />
+              {config.identity.has_cpf && (
+                <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 10 }}>
+                  CPF do cadastro: <strong style={{ fontFamily: 'var(--mono)' }}>{config.identity.cpf_masked}</strong>
+                </div>
+              )}
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 320 }}>
+                <span className="t-eyebrow">CPF</span>
+                <input
+                  className="input"
+                  value={document}
+                  onChange={(e) => setDocument(maskCpf(e.target.value))}
+                  placeholder="000.000.000-00"
+                  inputMode="numeric"
+                />
+              </label>
+            </Card>
+
+            {/* 3. Pagamento */}
+            <Card>
+              <StepHead n={3} title="Forma de pagamento" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {availableMethods.map((m) => (
                   <button
-                    key={pk.id}
-                    onClick={() => setPackageId(pk.id)}
-                    className="surface"
+                    key={m}
+                    type="button"
+                    onClick={() => setMethod(m)}
                     style={{
                       textAlign: 'left',
-                      padding: 18,
+                      padding: '14px 16px',
                       cursor: 'pointer',
-                      background: packageId === pk.id ? 'var(--edge-soft)' : 'var(--bg-2)',
-                      border: `1px solid ${packageId === pk.id ? 'var(--edge)' : 'var(--line)'}`,
+                      borderRadius: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      background: method === m ? 'var(--edge-soft)' : 'var(--bg-2)',
+                      border: `1.5px solid ${method === m ? 'var(--edge)' : 'var(--line)'}`,
                     }}
                   >
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 600 }}>
-                      {BRL(pk.price_brl + pk.bonus_brl)}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                      paga {BRL(pk.price_brl)}
-                      {pk.bonus_brl > 0 && (
-                        <span style={{ color: 'var(--edge)' }}> · +{BRL(pk.bonus_brl)} bônus</span>
-                      )}
-                    </div>
+                    <span style={{ fontSize: 20 }}>{METHOD_ICON[m]}</span>
+                    <span style={{ flex: 1 }}>
+                      <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {METHOD_LABEL[m]}
+                        {m === 'pix_recurring' && config.pix_recurring_discount_pct > 0 && (
+                          <span className="tag tag-edge" style={{ fontSize: 10 }}>
+                            −{config.pix_recurring_discount_pct}%
+                          </span>
+                        )}
+                      </span>
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{METHOD_HINT[m]}</span>
+                    </span>
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 18, height: 18, borderRadius: 999, flexShrink: 0,
+                        border: `2px solid ${method === m ? 'var(--edge)' : 'var(--line)'}`,
+                        background: method === m ? 'var(--edge)' : 'transparent',
+                        boxShadow: method === m ? 'inset 0 0 0 3px var(--bg-2)' : 'none',
+                      }}
+                    />
                   </button>
                 ))}
-              </div>
-            )}
-
-            <div style={{ marginTop: 16, fontSize: 12, color: 'var(--muted)' }}>
-              {kind === 'credits'
-                ? `Créditos servem para destravar previsões (${BRL(config.prediction_unlock_cost_brl)} cada) e abater em planos.`
-                : 'Pague no Pix, Pix recorrente (com desconto) ou cartão.'}
-            </div>
-
-            <FooterNav
-              right={
-                <button
-                  className="btn btn-edge"
-                  onClick={() => setStep('identity')}
-                  disabled={base <= 0}
-                >
-                  Continuar
-                </button>
-              }
-            />
-          </div>
-        )}
-
-        {step === 'identity' && (
-          <div className="surface" style={{ padding: 28 }}>
-            <SectionTitle
-              title="Confirme sua identidade"
-              sub="Por segurança, confirme o número do seu CPF antes de pagar."
-            />
-            {config.identity.has_cpf && (
-              <div style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 12 }}>
-                CPF do cadastro: <strong style={{ fontFamily: 'var(--mono)' }}>{config.identity.cpf_masked}</strong>
-              </div>
-            )}
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 320 }}>
-              <span className="t-eyebrow">CPF</span>
-              <input
-                className="input"
-                value={document}
-                onChange={(e) => setDocument(maskCpf(e.target.value))}
-                placeholder="000.000.000-00"
-                inputMode="numeric"
-              />
-            </label>
-            <FooterNav
-              left={<button className="btn btn-ghost" onClick={() => setStep('select')}>Voltar</button>}
-              right={
-                <button
-                  className="btn btn-edge"
-                  onClick={() => setStep('payment')}
-                  disabled={document.replace(/\D/g, '').length !== 11}
-                >
-                  Continuar
-                </button>
-              }
-            />
-          </div>
-        )}
-
-        {step === 'payment' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
-            <div className="surface" style={{ padding: 28 }}>
-              <SectionTitle title="Forma de pagamento" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {config.payment_methods
-                  .filter((m) => !(kind === 'credits' && m === 'pix_recurring'))
-                  .filter((m) => !(kind === 'plan' && cycle === 'lifetime' && m === 'pix_recurring'))
-                  .map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setMethod(m)}
-                      className="surface"
-                      style={{
-                        textAlign: 'left',
-                        padding: '14px 16px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        background: method === m ? 'var(--edge-soft)' : 'var(--bg-2)',
-                        border: `1px solid ${method === m ? 'var(--edge)' : 'var(--line)'}`,
-                      }}
-                    >
-                      <span style={{ fontWeight: 500 }}>{METHOD_LABEL[m]}</span>
-                      {m === 'pix_recurring' && config.pix_recurring_discount_pct > 0 && (
-                        <span className="tag tag-edge" style={{ fontSize: 10 }}>
-                          −{config.pix_recurring_discount_pct}%
-                        </span>
-                      )}
-                    </button>
-                  ))}
               </div>
 
               {method === 'card' && (
                 <div style={{ marginTop: 16, display: 'grid', gap: 10 }}>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <span className="t-eyebrow">Nome no cartão</span>
-                    <input className="input" value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} />
+                    <input className="input" value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} placeholder="Como impresso no cartão" />
                   </label>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <span className="t-eyebrow">Número do cartão</span>
                     <input
                       className="input"
                       value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
+                      onChange={(e) => setCardNumber(maskCard(e.target.value))}
                       placeholder="0000 0000 0000 0000"
                       inputMode="numeric"
                     />
@@ -343,40 +362,50 @@ export function CheckoutPage() {
                   Usar saldo de créditos ({BRL(config.wallet_balance_brl)})
                 </label>
               )}
-            </div>
-
-            <OrderSummary
-              kind={kind}
-              plan={plan}
-              cycle={cycle}
-              method={method}
-              base={base}
-              discounts={discounts}
-              walletApplied={walletApplied}
-              amount={amount}
-              creditsReceived={creditsReceived}
-              footer={
-                <>
-                  {error && <div style={{ fontSize: 12, color: 'var(--loss)', marginBottom: 8 }}>{error}</div>}
-                  <button className="btn btn-edge" style={{ width: '100%' }} onClick={submit} disabled={creating}>
-                    {creating ? 'Processando…' : amount > 0 ? `Pagar ${BRL(amount)}` : 'Finalizar'}
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ width: '100%', marginTop: 8 }}
-                    onClick={() => setStep('identity')}
-                  >
-                    Voltar
-                  </button>
-                </>
-              }
-            />
+            </Card>
           </div>
-        )}
 
-        {step === 'pay' && order && (
-          <PayStep order={order} gateway={config.gateway} onDone={async () => { await refresh(); navigate('/perfil'); }} />
-        )}
+          {/* ─── Resumo lateral fixo ─── */}
+          <div className="co-summary surface" style={{ padding: 22, position: 'sticky', top: 24 }}>
+            <div className="t-eyebrow" style={{ marginBottom: 14 }}>Resumo do pedido</div>
+            <Row
+              label={kind === 'plan' ? `Plano ${plan} · ${CYCLE_LABEL[cycle]}` : 'Recarga de créditos'}
+              value={BRL(base)}
+            />
+            {discounts.map((d) => (
+              <Row key={d.label} label={d.label} value={`− ${BRL(d.value)}`} color="var(--edge)" />
+            ))}
+            {walletApplied > 0 && <Row label="Saldo de créditos" value={`− ${BRL(walletApplied)}`} color="var(--edge)" />}
+            {kind === 'credits' && (
+              <Row label="Créditos recebidos" value={BRL(creditsReceived)} color="var(--edge)" />
+            )}
+            <hr className="hl" style={{ margin: '12px 0' }} />
+            <Row label="Total" value={BRL(amount)} bold />
+
+            {error && <div style={{ fontSize: 12, color: 'var(--loss)', marginTop: 12 }}>{error}</div>}
+
+            <button
+              className="btn btn-edge"
+              style={{ width: '100%', marginTop: 16, padding: '13px 0', fontSize: 15, fontWeight: 700 }}
+              onClick={submit}
+              disabled={!canPay}
+            >
+              {creating ? 'Processando…' : amount > 0 ? `Pagar ${BRL(amount)}` : 'Finalizar'}
+            </button>
+
+            {!canPay && !creating && cpfDigits.length !== 11 && (
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8, textAlign: 'center' }}>
+                Preencha seu CPF para continuar.
+              </div>
+            )}
+
+            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Trust icon="🔒" text="Pagamento criptografado e 100% seguro" />
+              <Trust icon="↩️" text="7 dias de garantia — cancele quando quiser" />
+              <Trust icon="⚡" text="Acesso liberado na hora da confirmação" />
+            </div>
+          </div>
+        </div>
       </div>
     </Shell>
   );
@@ -387,6 +416,7 @@ function PayStep({ order, gateway, onDone }: { order: Order; gateway: string; on
   const [current, setCurrent] = useState<Order>(order);
   const [copied, setCopied] = useState(false);
   const [simulating, setSimulating] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const isPaid = current.status === 'paid';
   const isPix = current.payment_method === 'pix' || current.payment_method === 'pix_recurring';
 
@@ -404,18 +434,29 @@ function PayStep({ order, gateway, onDone }: { order: Order; gateway: string; on
     return () => clearInterval(t);
   }, [current.id, current.status, isPaid]);
 
+  // Ao confirmar, manda pra Copa automaticamente (já logado).
+  useEffect(() => {
+    if (!isPaid) return;
+    setRedirecting(true);
+    const t = setTimeout(() => { onDone(); }, 1400);
+    return () => clearTimeout(t);
+  }, [isPaid, onDone]);
+
   if (isPaid) {
     return (
-      <div className="surface" style={{ padding: 40, textAlign: 'center' }}>
-        <div style={{ fontSize: 44 }}>✅</div>
-        <h2 style={{ margin: '12px 0 4px', fontWeight: 600 }}>Pagamento confirmado</h2>
+      <div className="surface" style={{ padding: 48, textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ fontSize: 48 }}>✅</div>
+        <h2 style={{ margin: '14px 0 4px', fontWeight: 700, fontSize: 22 }}>Pagamento confirmado!</h2>
         <p style={{ color: 'var(--text-2)', fontSize: 14 }}>
           {current.kind === 'plan'
-            ? `Plano ${current.plan} ativado.`
+            ? `Plano ${current.plan} ativado. Bom proveito! 🐐`
             : `Créditos adicionados à sua carteira.`}
         </p>
-        <button className="btn btn-edge" style={{ marginTop: 20 }} onClick={onDone}>
-          Continuar
+        <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 8 }}>
+          {redirecting ? 'Te levando para a Copa 2026…' : ''}
+        </p>
+        <button className="btn btn-edge" style={{ marginTop: 20, padding: '11px 22px', fontWeight: 700 }} onClick={onDone}>
+          Ir para a Copa 2026 →
         </button>
       </div>
     );
@@ -423,7 +464,7 @@ function PayStep({ order, gateway, onDone }: { order: Order; gateway: string; on
 
   if (current.status === 'failed' || current.status === 'cancelled') {
     return (
-      <div className="surface" style={{ padding: 40, textAlign: 'center' }}>
+      <div className="surface" style={{ padding: 40, textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
         <div style={{ fontSize: 44 }}>⚠️</div>
         <h2 style={{ margin: '12px 0 4px', fontWeight: 600 }}>Pagamento não concluído</h2>
         <Link to="/checkout" className="btn btn-ghost" style={{ marginTop: 16 }}>Tentar de novo</Link>
@@ -433,7 +474,9 @@ function PayStep({ order, gateway, onDone }: { order: Order; gateway: string; on
 
   return (
     <div className="surface" style={{ padding: 32, maxWidth: 460, margin: '0 auto', textAlign: 'center' }}>
-      <SectionTitle title={isPix ? 'Pague com Pix' : 'Processando pagamento'} />
+      <h2 style={{ margin: '0 0 18px', fontWeight: 700, fontSize: 20 }}>
+        {isPix ? 'Pague com Pix' : 'Processando pagamento'}
+      </h2>
       {isPix && current.pix_qr_image && (
         <img
           src={current.pix_qr_image}
@@ -496,99 +539,70 @@ function PayStep({ order, gateway, onDone }: { order: Order; gateway: string; on
   );
 }
 
-// ─── Resumo lateral do pedido ───────────────────────────────────────────────
-function OrderSummary(props: {
-  kind: 'plan' | 'credits';
-  plan: Plan;
-  cycle: BillingCycle;
-  method: PaymentMethod;
-  base: number;
-  discounts: Array<{ label: string; value: number }>;
-  walletApplied: number;
-  amount: number;
-  creditsReceived: number;
-  footer: React.ReactNode;
-}) {
-  const { kind, plan, cycle, base, discounts, walletApplied, amount, creditsReceived, footer } = props;
-  return (
-    <div className="surface" style={{ padding: 20, position: 'sticky', top: 24 }}>
-      <div className="t-eyebrow" style={{ marginBottom: 12 }}>Resumo</div>
-      <Row
-        label={kind === 'plan' ? `Plano ${plan} · ${CYCLE_LABEL[cycle]}` : 'Recarga de créditos'}
-        value={BRL(base)}
-      />
-      {discounts.map((d) => (
-        <Row key={d.label} label={d.label} value={`− ${BRL(d.value)}`} color="var(--edge)" />
-      ))}
-      {walletApplied > 0 && <Row label="Saldo de créditos" value={`− ${BRL(walletApplied)}`} color="var(--edge)" />}
-      {kind === 'credits' && (
-        <Row label="Créditos recebidos" value={BRL(creditsReceived)} color="var(--edge)" />
-      )}
-      <hr className="hl" style={{ margin: '12px 0' }} />
-      <Row label="Total a pagar" value={BRL(amount)} bold />
-      <div style={{ marginTop: 16 }}>{footer}</div>
-    </div>
-  );
-}
-
 // ─── Pequenos componentes de layout ─────────────────────────────────────────
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <div style={{ borderBottom: '1px solid var(--line)', padding: '14px 24px' }}>
+      <div style={{ borderBottom: '1px solid var(--line)', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
           <Logo size={16} />
         </Link>
+        <span style={{ fontSize: 12, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span aria-hidden>🔒</span> Compra segura
+        </span>
       </div>
       {children}
     </div>
   );
 }
 
-function Steps({ current }: { current: Step }) {
-  const order: Step[] = ['select', 'identity', 'payment', 'pay'];
-  const labels: Record<Step, string> = {
-    select: 'Plano',
-    identity: 'Identidade',
-    payment: 'Pagamento',
-    pay: 'Confirmação',
-  };
-  const idx = order.indexOf(current);
+function Card({ children }: { children: React.ReactNode }) {
+  return <div className="surface" style={{ padding: 24 }}>{children}</div>;
+}
+
+function StepHead({ n, title, sub }: { n: number; title: string; sub?: string }) {
   return (
-    <div style={{ display: 'flex', gap: 8, marginBottom: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
-      {order.map((s, i) => (
-        <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span
-            style={{
-              fontSize: 12,
-              padding: '4px 12px',
-              borderRadius: 999,
-              background: i <= idx ? 'var(--edge-soft)' : 'var(--bg-2)',
-              border: `1px solid ${i <= idx ? 'var(--edge)' : 'var(--line)'}`,
-              color: i <= idx ? 'var(--edge)' : 'var(--muted)',
-              fontWeight: i === idx ? 600 : 400,
-            }}
-          >
-            {i + 1}. {labels[s]}
-          </span>
-        </div>
-      ))}
+    <div style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      <span
+        style={{
+          flexShrink: 0, width: 26, height: 26, borderRadius: 999,
+          background: 'var(--edge-soft)', border: '1px solid var(--edge)', color: 'var(--edge)',
+          display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, fontFamily: 'var(--mono)',
+        }}
+      >
+        {n}
+      </span>
+      <div>
+        <h2 style={{ margin: 0, fontWeight: 700, fontSize: 17 }}>{title}</h2>
+        {sub && <p style={{ margin: '4px 0 0', color: 'var(--text-2)', fontSize: 13 }}>{sub}</p>}
+      </div>
     </div>
   );
 }
 
-function SectionTitle({ title, sub }: { title: string; sub?: string }) {
+function Selectable({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 18 }}>
-      <h2 style={{ margin: 0, fontWeight: 600, fontSize: 20 }}>{title}</h2>
-      {sub && <p style={{ margin: '6px 0 0', color: 'var(--text-2)', fontSize: 13 }}>{sub}</p>}
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        textAlign: 'left',
+        padding: 16,
+        cursor: 'pointer',
+        borderRadius: 12,
+        background: active ? 'var(--edge-soft)' : 'var(--bg-2)',
+        border: `1.5px solid ${active ? 'var(--edge)' : 'var(--line)'}`,
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
 function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       style={{
         padding: '8px 14px',
@@ -606,22 +620,21 @@ function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; c
   );
 }
 
-function FooterNav({ left, right }: { left?: React.ReactNode; right?: React.ReactNode }) {
+function Row({ label, value, color, bold }: { label: string; value: string; color?: string; bold?: boolean }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-      <div>{left}</div>
-      <div>{right}</div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: bold ? 17 : 13, padding: '5px 0', gap: 12 }}>
+      <span style={{ color: 'var(--text-2)', fontWeight: bold ? 700 : 400 }}>{label}</span>
+      <span style={{ fontFamily: 'var(--mono)', color: color || 'var(--text)', fontWeight: bold ? 700 : 400, whiteSpace: 'nowrap' }}>
+        {value}
+      </span>
     </div>
   );
 }
 
-function Row({ label, value, color, bold }: { label: string; value: string; color?: string; bold?: boolean }) {
+function Trust({ icon, text }: { icon: string; text: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: bold ? 15 : 13, padding: '4px 0' }}>
-      <span style={{ color: 'var(--text-2)', fontWeight: bold ? 600 : 400 }}>{label}</span>
-      <span style={{ fontFamily: 'var(--mono)', color: color || 'var(--text)', fontWeight: bold ? 600 : 400 }}>
-        {value}
-      </span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-2)' }}>
+      <span aria-hidden>{icon}</span> {text}
     </div>
   );
 }
@@ -632,6 +645,14 @@ function maskCpf(v: string): string {
     .replace(/(\d{3})(\d)/, '$1.$2')
     .replace(/(\d{3})(\d)/, '$1.$2')
     .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+}
+
+function maskCard(v: string): string {
+  return v
+    .replace(/\D/g, '')
+    .slice(0, 16)
+    .replace(/(\d{4})(?=\d)/g, '$1 ')
+    .trim();
 }
 
 function round2(n: number): number {

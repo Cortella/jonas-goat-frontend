@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { api, getToken, setToken, type SignupBody, type User } from './api';
 
 interface AuthState {
@@ -16,6 +17,8 @@ const AuthCtx = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const qc = useQueryClient();
 
   const refresh = useCallback(async () => {
     if (!getToken()) {
@@ -62,7 +65,11 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     }
     setToken(null);
     setUser(null);
-  }, []);
+    // Limpa dados em cache (previsões, bankroll, conteúdo Pro) pra não vazar
+    // depois de deslogar, e volta pra landing — sem isso a tela "não trava".
+    qc.clear();
+    navigate('/', { replace: true });
+  }, [navigate, qc]);
 
   const value = useMemo(
     () => ({ user, loading, signup, login, logout, refresh }),

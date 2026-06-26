@@ -936,7 +936,13 @@ export const api = {
   signup: (body: SignupBody) => post<AuthResponse>('/api/auth/signup', body),
   login: (body: { email: string; password: string }) => post<AuthResponse>('/api/auth/login', body),
   logout: () => post<{ ok: boolean }>('/api/auth/logout', {}),
-  me: () => get<User>('/api/auth/me'),
+  me: async () => {
+    // O backend reemite o token a cada /me (sessão deslizante) — guardamos o
+    // novo para o Bearer do localStorage também nunca expirar.
+    const u = await get<User & { token?: string }>('/api/auth/me');
+    if (u.token) setToken(u.token);
+    return u as User;
+  },
   patchMe: (body: ProfilePatch) =>
     request<User>('/api/auth/me', { method: 'PATCH', body: JSON.stringify(body) }),
   uploadAvatar: (dataUrl: string) =>

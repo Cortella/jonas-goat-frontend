@@ -1,40 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import i18n from 'i18next';
 import { Logo } from './atoms';
 import { Avatar } from './Avatar';
 import { NotificationBell } from './NotificationBell';
 import { useAuth } from '../lib/auth';
-import { api } from '../lib/api';
 import { SUPPORTED_LANGUAGES } from '../lib/i18n';
 import { LanguageSelector } from './LanguageSelector';
 
-interface NavItem { to: string; labelKey?: string; label?: string; emphasis?: 'cup'; affiliate?: boolean; auth?: boolean }
+interface NavItem { to: string; labelKey?: string; label?: string; emphasis?: 'cup'; auth?: boolean }
 const ITEMS: NavItem[] = [
   { to: '/copa-2026', labelKey: 'nav.cup', emphasis: 'cup' },
   { to: '/predictions', labelKey: 'nav.predictions' },
   { to: '/bankroll', label: 'Carteira', auth: true },
-  { to: '/comparador', labelKey: 'nav.comparator' },
   { to: '/founders', label: 'Founders' },
-  { to: '/afiliados', labelKey: 'nav.affiliates', affiliate: true },
-  { to: '/transparencia', labelKey: 'nav.transparency' },
 ];
 
 export function AppBar() {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
-  const settingsQ = useQuery({
-    queryKey: ['public-settings'],
-    queryFn: () => api.publicSettings(),
-    staleTime: 5 * 60_000,
-  });
-  // Programa de afiliados pausado → esconde a entrada do menu (foco na Copa).
-  const affiliatesEnabled = settingsQ.data?.affiliate_program_enabled ?? false;
-  const items = ITEMS.filter(
-    (it) => (!it.affiliate || affiliatesEnabled) && (!it.auth || !!user),
-  );
+  const items = ITEMS.filter((it) => !it.auth || !!user);
   const [langOpen, setLangOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
 

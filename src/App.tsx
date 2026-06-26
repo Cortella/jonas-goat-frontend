@@ -8,10 +8,8 @@ import { CreditsPage } from './pages/CreditsPage';
 import { AdminOrdersPage } from './pages/AdminOrdersPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { PredictionsPage } from './pages/PredictionsPage';
-import { ComparatorPage } from './pages/ComparatorPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { BankrollPage } from './pages/BankrollPage';
-import { TransparencyPage } from './pages/TransparencyPage';
 import { MethodologyPage } from './pages/MethodologyPage';
 import { MatchDetailPage } from './pages/MatchDetailPage';
 import { LiveMatchPage } from './pages/LiveMatchPage';
@@ -29,7 +27,6 @@ import { AdminCommissionsPage } from './pages/AdminCommissionsPage';
 import { AdminNotificationsPage } from './pages/AdminNotificationsPage';
 import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { AdminPricingPage } from './pages/AdminPricingPage';
-import { AffiliatePage } from './pages/AffiliatePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminAccessLogsPage } from './pages/AdminAccessLogsPage';
 import { AdminActivityLogPage } from './pages/AdminActivityLogPage';
@@ -67,8 +64,9 @@ export function App() {
         <Route path="/predictions" element={<PredictionsPage />} />
         <Route path="/predictions/:matchId" element={<MatchDetailPage />} />
         <Route path="/partida-ao-vivo/:matchId" element={<LiveMatchPage />} />
-        <Route path="/comparador" element={<ComparatorPage />} />
-        <Route path="/transparencia" element={<TransparencyPage />} />
+        {/* Comparador e Transparência desativados — rotas bloqueadas. */}
+        <Route path="/comparador" element={<Navigate to="/" replace />} />
+        <Route path="/transparencia" element={<Navigate to="/" replace />} />
         <Route path="/metodologia" element={<MethodologyPage />} />
         <Route path="/copa-2026" element={<WorldCupPage />} />
         <Route path="/copa-2026/selecao/:slug" element={<SelecaoPage />} />
@@ -100,14 +98,8 @@ export function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/afiliados"
-          element={
-            <ProtectedRoute>
-              <AffiliatePage />
-            </ProtectedRoute>
-          }
-        />
+        {/* Afiliados desativado — rota bloqueada. */}
+        <Route path="/afiliados" element={<Navigate to="/" replace />} />
         <Route
           path="/perfil"
           element={

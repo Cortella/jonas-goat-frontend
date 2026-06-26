@@ -236,7 +236,7 @@ export function LandingPage() {
                   ? t('landing.cta_signup_discount', { discount })
                   : t('landing.cta_signup')}
               </Link>
-              <Link to="/transparencia" className="btn btn-ghost" style={{ textDecoration: 'none' }}>
+              <Link to="/metodologia" className="btn btn-ghost" style={{ textDecoration: 'none' }}>
                 {t('landing.cta_backtest')}
               </Link>
             </div>

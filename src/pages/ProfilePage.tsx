@@ -241,12 +241,7 @@ export function ProfilePage() {
                   Comissão atual:{' '}
                   <strong style={{ color: 'var(--edge)' }}>
                     {user.affiliate_pct_override ?? '—'}%
-                  </strong>{' '}
-                  (use o link da página{' '}
-                  <a href="/afiliados" style={{ color: 'var(--edge)' }}>
-                    Afiliados
-                  </a>{' '}
-                  para gerenciar).
+                  </strong>.
                 </p>
               </div>
             )}

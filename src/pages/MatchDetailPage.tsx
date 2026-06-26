@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AppBar } from '../components/AppBar';
 import { Crest, Dot, ProbBar, Sparkline } from '../components/atoms';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { PlaceBetModal } from '../components/PlaceBetModal';
 
 interface ModelRow {
   name: string;
@@ -48,6 +50,7 @@ export function MatchDetailPage() {
   const id = matchId ? Number(matchId) : null;
 
   const { user } = useAuth();
+  const [betOpen, setBetOpen] = useState(false);
 
   const q = useQuery({
     queryKey: ['prediction', id],
@@ -74,6 +77,12 @@ export function MatchDetailPage() {
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <AppBar />
+      {betOpen && (
+        <PlaceBetModal
+          game={{ matchId: id, home: q.data?.home_team ?? null, away: q.data?.away_team ?? null, league: q.data?.league ?? null }}
+          onClose={() => setBetOpen(false)}
+        />
+      )}
 
       <div style={{ padding: '20px 32px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--muted)' }}>
         <Link to="/predictions" style={{ color: 'inherit', textDecoration: 'none' }}>Previsões</Link>
@@ -98,8 +107,8 @@ export function MatchDetailPage() {
             <Dot pulse />
             <span style={{ fontSize: 11, color: 'var(--edge)', fontFamily: 'var(--mono)', letterSpacing: '0.06em' }}>VALUE BET DETECTADO</span>
           </div>
-          {id != null && (
-            <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {id != null && (
               <Link
                 to={`/partida-ao-vivo/${id}`}
                 className="btn btn-sm"
@@ -108,8 +117,15 @@ export function MatchDetailPage() {
                 <Dot pulse style={{ background: 'oklch(0.68 0.16 25)' }} />
                 Análise ao vivo
               </Link>
-            </div>
-          )}
+            )}
+            <button
+              className="btn btn-edge btn-sm"
+              style={{ padding: '6px 12px', fontSize: 11 }}
+              onClick={() => setBetOpen(true)}
+            >
+              🎯 Registrar aposta
+            </button>
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Crest team={away} size={56} />

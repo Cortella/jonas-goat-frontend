@@ -513,8 +513,19 @@ export interface AlertChannel {
   created_at: string;
 }
 
+export interface BankrollWallet {
+  id: number;
+  name: string;
+  bankroll_initial: number;
+  bankroll_current: number;
+  open_bets?: number;
+  created_at: string;
+}
+
 export interface Bet {
   id: number;
+  wallet_id: number | null;
+  wallet_name?: string | null;
   match_id: number | null;
   league: string | null;
   home_team: string | null;
@@ -552,6 +563,7 @@ export interface BankrollEntry {
   amount: number;
   balance_after: number;
   note: string | null;
+  wallet_name?: string | null;
   created_at: string;
 }
 
@@ -938,16 +950,19 @@ export const api = {
   deleteChannel: (id: number) => del<void>(`/api/alerts/channels/${id}`),
 
   // bankroll
-  bankrollSummary: () => get<BankrollSummary>('/api/bankroll/summary'),
-  listBets: (limit = 100) => get<Bet[]>(`/api/bankroll/bets?limit=${limit}`),
-  createBet: (body: Omit<Bet, 'id' | 'placed_at' | 'settled_at' | 'result' | 'payout'> & { result?: never }) =>
+  listWallets: () => get<BankrollWallet[]>('/api/bankroll/wallets'),
+  createWallet: (name: string) => post<BankrollWallet>('/api/bankroll/wallets', { name }),
+  deleteWallet: (id: number) => del<void>(`/api/bankroll/wallets/${id}`),
+  bankrollSummary: (wallet = 'all') => get<BankrollSummary>(`/api/bankroll/summary?wallet=${wallet}`),
+  listBets: (wallet = 'all', limit = 200) => get<Bet[]>(`/api/bankroll/bets?wallet=${wallet}&limit=${limit}`),
+  createBet: (body: Omit<Bet, 'id' | 'wallet_name' | 'placed_at' | 'settled_at' | 'result' | 'payout'> & { result?: never }) =>
     post<Bet>('/api/bankroll/bets', body),
   settleBet: (id: number, body: { result: 'win' | 'loss' | 'push'; payout?: number }) =>
     post<Bet>(`/api/bankroll/bets/${id}/settle`, body),
   deleteBet: (id: number) => del<void>(`/api/bankroll/bets/${id}`),
-  listBankrollEntries: (limit = 100) =>
-    get<BankrollEntry[]>(`/api/bankroll/entries?limit=${limit}`),
-  createBankrollEntry: (body: { kind: 'deposit' | 'withdraw' | 'adjust'; amount: number; note?: string | null }) =>
+  listBankrollEntries: (wallet = 'all', limit = 200) =>
+    get<BankrollEntry[]>(`/api/bankroll/entries?wallet=${wallet}&limit=${limit}`),
+  createBankrollEntry: (body: { wallet_id: number; kind: 'deposit' | 'withdraw' | 'adjust'; amount: number; note?: string | null }) =>
     post<BankrollEntry>('/api/bankroll/entries', body),
 
   // world cup

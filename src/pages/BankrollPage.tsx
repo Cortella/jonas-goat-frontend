@@ -2,19 +2,15 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppBar } from '../components/AppBar';
 import { SectionHeader, Stat } from '../components/atoms';
-import { api, type BankrollEntry, type BankrollSummary, type Bet } from '../lib/api';
+import { api, type BankrollEntry, type BankrollSummary, type BankrollWallet, type Bet } from '../lib/api';
 import { money as BRL } from '../lib/money';
+import { PlaceBetModal } from '../components/PlaceBetModal';
 
 const PCT = (v: number) => `${(v * 100).toFixed(1)}%`;
-const todayIso = () => new Date().toISOString().slice(0, 10);
 
-interface BankrollPoint {
-  date: string;
-  value: number;
-}
+interface BankrollPoint { date: string; value: number }
 
-/** Evolução da banca: começa em 0 e aplica, em ordem, os lançamentos (depósito,
- *  saque, ajuste) e os resultados das apostas liquidadas. */
+/** Evolução: começa em 0 e aplica, em ordem, lançamentos e apostas liquidadas. */
 function buildSeries(bets: Bet[], entries: BankrollEntry[]): BankrollPoint[] {
   type Ev = { t: string; fn: (acc: number) => number; label: string };
   const evs: Ev[] = [];
@@ -31,95 +27,121 @@ function buildSeries(bets: Bet[], entries: BankrollEntry[]): BankrollPoint[] {
   evs.sort((a, b) => a.t.localeCompare(b.t));
   const points: BankrollPoint[] = [{ date: 'início', value: 0 }];
   let acc = 0;
-  for (const ev of evs) {
-    acc = Math.round(ev.fn(acc) * 100) / 100;
-    points.push({ date: ev.label, value: acc });
-  }
+  for (const ev of evs) { acc = Math.round(ev.fn(acc) * 100) / 100; points.push({ date: ev.label, value: acc }); }
   return points;
 }
 
 export function BankrollPage() {
   const qc = useQueryClient();
-  const summaryQ = useQuery({ queryKey: ['bankroll-summary'], queryFn: () => api.bankrollSummary() });
-  const betsQ = useQuery({ queryKey: ['bankroll-bets'], queryFn: () => api.listBets(200) });
-  const entriesQ = useQuery({ queryKey: ['bankroll-entries'], queryFn: () => api.listBankrollEntries(200) });
+  const [wallet, setWallet] = useState('all'); // 'all' = carteira principal (agregada)
   const [betOpen, setBetOpen] = useState(false);
   const [entryOpen, setEntryOpen] = useState(false);
+  const [walletOpen, setWalletOpen] = useState(false);
+
+  const walletsQ = useQuery({ queryKey: ['bankroll-wallets'], queryFn: () => api.listWallets() });
+  const summaryQ = useQuery({ queryKey: ['bankroll-summary', wallet], queryFn: () => api.bankrollSummary(wallet) });
+  const betsQ = useQuery({ queryKey: ['bankroll-bets', wallet], queryFn: () => api.listBets(wallet) });
+  const entriesQ = useQuery({ queryKey: ['bankroll-entries', wallet], queryFn: () => api.listBankrollEntries(wallet) });
+
+  const wallets = walletsQ.data ?? [];
+  const viewingAll = wallet === 'all';
+  const defaultWalletId = viewingAll ? wallets[0]?.id : Number(wallet);
 
   const refresh = () => {
-    qc.invalidateQueries({ queryKey: ['bankroll-summary'] });
-    qc.invalidateQueries({ queryKey: ['bankroll-bets'] });
-    qc.invalidateQueries({ queryKey: ['bankroll-entries'] });
+    for (const k of ['bankroll-wallets', 'bankroll-summary', 'bankroll-bets', 'bankroll-entries']) {
+      qc.invalidateQueries({ queryKey: [k] });
+    }
   };
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <AppBar />
-      <div style={{ padding: '32px 32px 16px', maxWidth: 1280, margin: '0 auto' }}>
+      <div style={{ padding: '32px 32px 8px', maxWidth: 1280, margin: '0 auto' }}>
         <SectionHeader
           eyebrow="Bankroll pessoal"
           title="Sua banca, suas apostas, sua progressão."
-          sub="Registre apostas com a odd que a casa te deu, acompanhe a evolução da banca e use lançamentos para sincronizar o saldo."
+          sub="Crie uma carteira por site/conta e registre apostas com a odd que a casa te deu. A carteira principal soma todas."
           action={
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => setEntryOpen(true)}>+ Lançamento</button>
-              <button className="btn btn-edge btn-sm" onClick={() => setBetOpen(true)}>+ Registrar aposta</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setEntryOpen(true)} disabled={!defaultWalletId}>+ Lançamento</button>
+              <button className="btn btn-edge btn-sm" onClick={() => setBetOpen(true)} disabled={!defaultWalletId}>+ Registrar aposta</button>
             </div>
           }
         />
       </div>
 
-      {summaryQ.isLoading && (
-        <div style={{ padding: 48, color: 'var(--muted)', textAlign: 'center' }}>Carregando…</div>
-      )}
+      {/* Seletor de carteiras */}
+      <div style={{ padding: '0 32px 16px', maxWidth: 1280, margin: '0 auto', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <WalletChip active={viewingAll} onClick={() => setWallet('all')}>🏦 Principal</WalletChip>
+        {wallets.map((w) => (
+          <WalletChip key={w.id} active={wallet === String(w.id)} onClick={() => setWallet(String(w.id))}>
+            {w.name} · {BRL(w.bankroll_current)}
+          </WalletChip>
+        ))}
+        <button className="btn btn-ghost btn-sm" onClick={() => setWalletOpen(true)}>+ Nova carteira</button>
+      </div>
+
+      {summaryQ.isLoading && <div style={{ padding: 48, color: 'var(--muted)', textAlign: 'center' }}>Carregando…</div>}
       {summaryQ.isError && (
-        <div className="surface" style={{ margin: 32, padding: 24, color: 'var(--loss)' }}>
-          Erro: {String(summaryQ.error)}
-        </div>
+        <div className="surface" style={{ margin: 32, padding: 24, color: 'var(--loss)' }}>Erro: {String(summaryQ.error)}</div>
       )}
       {summaryQ.data && betsQ.data && (
         <BankrollBody
           summary={summaryQ.data}
           bets={betsQ.data}
           entries={entriesQ.data ?? []}
+          wallets={wallets}
+          viewingAll={viewingAll}
           onChanged={refresh}
+          onPickWallet={setWallet}
         />
       )}
 
-      {betOpen && <BetModal onClose={() => setBetOpen(false)} onSaved={() => { setBetOpen(false); refresh(); }} />}
-      {entryOpen && <EntryModal onClose={() => setEntryOpen(false)} onSaved={() => { setEntryOpen(false); refresh(); }} />}
+      {betOpen && (
+        <PlaceBetModal onClose={() => setBetOpen(false)} onSaved={() => { setBetOpen(false); refresh(); }} />
+      )}
+      {entryOpen && defaultWalletId && (
+        <EntryModal wallets={wallets} defaultWalletId={defaultWalletId} onClose={() => setEntryOpen(false)} onSaved={() => { setEntryOpen(false); refresh(); }} />
+      )}
+      {walletOpen && <WalletModal onClose={() => setWalletOpen(false)} onSaved={() => { setWalletOpen(false); refresh(); }} />}
     </div>
   );
 }
 
+function WalletChip({ active, onClick, children }: Readonly<{ active: boolean; onClick: () => void; children: React.ReactNode }>) {
+  return (
+    <button
+      onClick={onClick}
+      className={active ? 'btn btn-sm' : 'btn btn-ghost btn-sm'}
+      style={active ? { background: 'var(--edge-soft)', color: 'var(--edge)', borderColor: 'oklch(0.88 0.17 125 / 0.4)' } : undefined}
+    >
+      {children}
+    </button>
+  );
+}
+
 function BankrollBody({
-  summary,
-  bets,
-  entries,
-  onChanged,
-}: Readonly<{ summary: BankrollSummary; bets: Bet[]; entries: BankrollEntry[]; onChanged: () => void }>) {
+  summary, bets, entries, wallets, viewingAll, onChanged, onPickWallet,
+}: Readonly<{
+  summary: BankrollSummary; bets: Bet[]; entries: BankrollEntry[]; wallets: BankrollWallet[];
+  viewingAll: boolean; onChanged: () => void; onPickWallet: (w: string) => void;
+}>) {
   const series = buildSeries(bets, entries);
   const w = 760;
   const h = 220;
   const min = Math.min(0, ...series.map((p) => p.value));
   const max = Math.max(...series.map((p) => p.value), 1);
   const range = max - min || 1;
-  const pts =
-    series.length > 1
-      ? series
-          .map((p, i) => `${(i / (series.length - 1)) * w},${h - ((p.value - min) / range) * h * 0.92 - 8}`)
-          .join(' ')
-      : `0,${h / 2} ${w},${h / 2}`;
+  const pts = series.length > 1
+    ? series.map((p, i) => `${(i / (series.length - 1)) * w},${h - ((p.value - min) / range) * h * 0.92 - 8}`).join(' ')
+    : `0,${h / 2} ${w},${h / 2}`;
   const areaPts = `0,${h} ${pts} ${w},${h}`;
 
   const settle = useMutation({
     mutationFn: (v: { id: number; result: 'win' | 'loss' | 'push' }) => api.settleBet(v.id, { result: v.result }),
     onSuccess: onChanged,
   });
-  const removeBet = useMutation({
-    mutationFn: (id: number) => api.deleteBet(id),
-    onSuccess: onChanged,
-  });
+  const removeBet = useMutation({ mutationFn: (id: number) => api.deleteBet(id), onSuccess: onChanged });
 
   const byKey = (key: keyof Bet) => {
     const map = new Map<string, { count: number; w: number; l: number; roi: number; staked: number; payout: number }>();
@@ -135,9 +157,7 @@ function BankrollBody({
       e.roi = e.staked > 0 ? e.payout / e.staked : 0;
       map.set(k, e);
     }
-    return Array.from(map.entries())
-      .map(([k, v]) => ({ key: k, ...v }))
-      .sort((a, b) => b.staked - a.staked);
+    return Array.from(map.entries()).map(([k, v]) => ({ key: k, ...v })).sort((a, b) => b.staked - a.staked);
   };
 
   const winRate = summary.settled > 0 ? summary.wins / summary.settled : 0;
@@ -149,12 +169,7 @@ function BankrollBody({
     <>
       <div style={{ padding: '0 32px 16px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, maxWidth: 1280, margin: '0 auto' }}>
         <div className="surface" style={{ padding: 20 }}>
-          <Stat
-            label="Bankroll atual"
-            value={BRL(summary.bankroll_current)}
-            sub={summary.bankroll_initial > 0 ? `${profit >= 0 ? '+' : ''}${PCT(profitPct)} desde início` : 'defina sua banca'}
-            color={profit >= 0 ? 'var(--edge)' : 'var(--loss)'}
-          />
+          <Stat label="Bankroll atual" value={BRL(summary.bankroll_current)} sub={summary.bankroll_initial > 0 ? `${profit >= 0 ? '+' : ''}${PCT(profitPct)} desde início` : 'defina sua banca'} color={profit >= 0 ? 'var(--edge)' : 'var(--loss)'} />
         </div>
         <div className="surface" style={{ padding: 20 }}>
           <Stat label="ROI" value={summary.settled > 0 ? PCT(summary.roi) : '—'} sub={`${BRL(summary.total_payout)} de lucro`} color={summary.roi > 0 ? 'var(--win)' : 'var(--loss)'} />
@@ -172,31 +187,36 @@ function BankrollBody({
 
       <div style={{ padding: '0 32px 32px', display: 'grid', gridTemplateColumns: '1fr 380px', gap: 16, maxWidth: 1280, margin: '0 auto' }}>
         <div className="surface" style={{ padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <div>
-              <div className="t-eyebrow">Evolução da banca</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginTop: 6 }}>
-                <span className="t-num" style={{ fontSize: 28, fontWeight: 500 }}>{BRL(summary.bankroll_current)}</span>
-                <span style={{ color: profit >= 0 ? 'var(--edge)' : 'var(--loss)', fontFamily: 'var(--mono)', fontSize: 13 }}>
-                  {profit >= 0 ? '+' : ''}{BRL(profit)}
-                </span>
-              </div>
-            </div>
+          <div className="t-eyebrow">Evolução da banca {viewingAll ? '(todas as carteiras)' : ''}</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, margin: '6px 0 16px' }}>
+            <span className="t-num" style={{ fontSize: 28, fontWeight: 500 }}>{BRL(summary.bankroll_current)}</span>
+            <span style={{ color: profit >= 0 ? 'var(--edge)' : 'var(--loss)', fontFamily: 'var(--mono)', fontSize: 13 }}>{profit >= 0 ? '+' : ''}{BRL(profit)}</span>
           </div>
           <svg width={w} height={h} style={{ display: 'block', overflow: 'visible' }}>
-            {[0, 0.25, 0.5, 0.75, 1].map((v) => (
-              <line key={v} x1="0" x2={w} y1={h * v} y2={h * v} stroke="var(--line)" strokeDasharray="3 5" />
-            ))}
+            {[0, 0.25, 0.5, 0.75, 1].map((v) => (<line key={v} x1="0" x2={w} y1={h * v} y2={h * v} stroke="var(--line)" strokeDasharray="3 5" />))}
             <polygon points={areaPts} fill="oklch(0.88 0.17 125 / 0.12)" />
             <polyline points={pts} fill="none" stroke="oklch(0.88 0.17 125)" strokeWidth="2" />
           </svg>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
-            <span>{series[0]?.date}</span>
-            <span>{series.at(-1)?.date}</span>
+            <span>{series[0]?.date}</span><span>{series.at(-1)?.date}</span>
           </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {viewingAll && wallets.length > 0 && (
+            <div className="surface" style={{ padding: 24 }}>
+              <div className="t-eyebrow" style={{ marginBottom: 12 }}>Carteiras</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {wallets.map((wl) => (
+                  <button key={wl.id} onClick={() => onPickWallet(String(wl.id))} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, padding: '8px 10px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer', textAlign: 'left' }}>
+                    <span style={{ fontWeight: 500 }}>{wl.name}</span>
+                    <span style={{ fontFamily: 'var(--mono)' }}>{BRL(wl.bankroll_current)}{wl.open_bets ? ` · ${wl.open_bets} aberta(s)` : ''}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="surface" style={{ padding: 24 }}>
             <div className="t-eyebrow" style={{ marginBottom: 12 }}>Apostas em aberto</div>
             {openBets.length === 0 ? (
@@ -210,7 +230,7 @@ function BankrollBody({
                       <span className="tag" style={{ fontSize: 10 }}>{b.market}</span>
                     </div>
                     <div style={{ color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 11, marginBottom: 8 }}>
-                      {b.bookmaker ?? '—'} @ {Number(b.odd).toFixed(2)} · stake {BRL(Number(b.stake))}
+                      {viewingAll && b.wallet_name ? `${b.wallet_name} · ` : ''}{b.bookmaker ?? '—'} @ {Number(b.odd).toFixed(2)} · stake {BRL(Number(b.stake))}
                     </div>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button className="btn btn-ghost btn-sm" style={{ flex: 1, color: 'var(--win)' }} disabled={settle.isPending} onClick={() => settle.mutate({ id: b.id, result: 'win' })}>Green</button>
@@ -225,16 +245,16 @@ function BankrollBody({
           </div>
 
           <div className="surface" style={{ padding: 24 }}>
-            <div className="t-eyebrow" style={{ marginBottom: 12 }}>Lançamentos</div>
+            <div className="t-eyebrow" style={{ marginBottom: 12 }}>Extrato de lançamentos</div>
             {entries.length === 0 ? (
               <div style={{ color: 'var(--muted)', fontSize: 12, padding: '12px 0' }}>
-                Nenhum lançamento. Use “+ Lançamento” para registrar um depósito, saque ou ajustar o saldo.
+                Nenhum lançamento. Use “+ Lançamento” para depósito, saque ou ajustar o saldo.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {entries.slice(0, 8).map((e) => (
+                {entries.slice(0, 10).map((e) => (
                   <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
-                    <span>{ENTRY_LABEL[e.kind]}{e.note ? ` · ${e.note}` : ''}</span>
+                    <span>{ENTRY_LABEL[e.kind]}{viewingAll && e.wallet_name ? ` · ${e.wallet_name}` : ''}{e.note ? ` · ${e.note}` : ''}</span>
                     <span style={{ fontFamily: 'var(--mono)', color: e.kind === 'withdraw' ? 'var(--loss)' : 'var(--text)' }}>
                       {e.kind === 'withdraw' ? '−' : e.kind === 'deposit' ? '+' : ''}{BRL(e.amount)}
                     </span>
@@ -256,108 +276,35 @@ function BankrollBody({
 }
 
 const ENTRY_LABEL: Record<BankrollEntry['kind'], string> = {
-  deposit: 'Depósito',
-  withdraw: 'Saque',
-  adjust: 'Ajuste de saldo',
+  deposit: 'Depósito', withdraw: 'Saque', adjust: 'Ajuste de saldo',
 };
 
-// ─── Modal de registrar aposta ──────────────────────────────────────────────
-function BetModal({ onClose, onSaved }: Readonly<{ onClose: () => void; onSaved: () => void }>) {
-  const [date, setDate] = useState(todayIso());
-  const matchesQ = useQuery({ queryKey: ['bet-matches', date], queryFn: () => api.predictions({ date }) });
-  const matches = matchesQ.data?.predictions ?? [];
-
-  const [pick, setPick] = useState(''); // '' (escolha), id, ou 'manual'
-  const [home, setHome] = useState('');
-  const [away, setAway] = useState('');
-  const [league, setLeague] = useState('');
-  const [market, setMarket] = useState('Resultado (1X2)');
-  const [bookmaker, setBookmaker] = useState('');
-  const [odd, setOdd] = useState('');
-  const [stake, setStake] = useState('');
-  const [notes, setNotes] = useState('');
-  const manual = pick === 'manual';
-
-  function choose(v: string) {
-    setPick(v);
-    if (v && v !== 'manual') {
-      const m = matches.find((x) => String(x.match_id) === v);
-      if (m) { setHome(m.home_team); setAway(m.away_team); setLeague(m.league); }
-    }
-  }
-
-  const create = useMutation({
-    mutationFn: () =>
-      api.createBet({
-        match_id: manual || !pick ? null : Number(pick),
-        league: league.trim() || null,
-        home_team: home.trim() || null,
-        away_team: away.trim() || null,
-        market: market.trim(),
-        bookmaker: bookmaker.trim() || null,
-        odd: Number(odd),
-        stake: Number(stake),
-        expected_value: null,
-        kelly_fraction: null,
-        notes: notes.trim() || null,
-      }),
-    onSuccess: onSaved,
-  });
-
-  const hasGame = manual ? !!(home.trim() && away.trim()) : !!pick;
-  const valid = !!market.trim() && Number(odd) > 1 && Number(stake) > 0 && hasGame;
-
+function WalletSelect({ wallets, value, onChange }: Readonly<{ wallets: BankrollWallet[]; value: number; onChange: (id: number) => void }>) {
   return (
-    <Modal title="Registrar aposta" onClose={onClose}>
-      <Field label="Jogo">
-        <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} style={{ marginBottom: 8 }} />
-        <select className="input" value={pick} onChange={(e) => choose(e.target.value)}>
-          <option value="">{matchesQ.isLoading ? 'Carregando jogos…' : 'Escolha um jogo'}</option>
-          {matches.map((m) => (
-            <option key={m.match_id} value={String(m.match_id)}>
-              {m.kickoff?.slice(11, 16) ? `${m.kickoff.slice(11, 16)} · ` : ''}{m.home_team} × {m.away_team} ({m.league})
-            </option>
-          ))}
-          <option value="manual">Outro jogo (digitar)</option>
-        </select>
-      </Field>
-      {manual && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <Field label="Mandante"><input className="input" value={home} onChange={(e) => setHome(e.target.value)} /></Field>
-          <Field label="Visitante"><input className="input" value={away} onChange={(e) => setAway(e.target.value)} /></Field>
-          <Field label="Liga"><input className="input" value={league} onChange={(e) => setLeague(e.target.value)} placeholder="opcional" /></Field>
-        </div>
-      )}
-      <Field label="Mercado"><input className="input" value={market} onChange={(e) => setMarket(e.target.value)} placeholder="Ex.: Over 2.5, Casa, BTTS…" /></Field>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        <Field label="Casa / bookmaker"><input className="input" value={bookmaker} onChange={(e) => setBookmaker(e.target.value)} placeholder="opcional" /></Field>
-        <Field label="Odd da casa"><input className="input" type="number" step="0.01" value={odd} onChange={(e) => setOdd(e.target.value)} placeholder="1.95" /></Field>
-      </div>
-      <Field label="Stake (valor apostado)"><input className="input" type="number" step="0.01" value={stake} onChange={(e) => setStake(e.target.value)} placeholder="50" /></Field>
-      <Field label="Notas"><input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="opcional" /></Field>
-
-      {create.isError && <div style={{ fontSize: 12, color: 'var(--loss)', marginTop: 8 }}>{String(create.error)}</div>}
-      <button className="btn btn-edge" style={{ width: '100%', marginTop: 16, fontWeight: 700 }} disabled={!valid || create.isPending} onClick={() => create.mutate()}>
-        {create.isPending ? 'Salvando…' : 'Registrar aposta'}
-      </button>
-    </Modal>
+    <Field label="Carteira">
+      <select className="input" value={value} onChange={(e) => onChange(Number(e.target.value))}>
+        {wallets.map((w) => (<option key={w.id} value={w.id}>{w.name}</option>))}
+      </select>
+    </Field>
   );
 }
 
 // ─── Modal de lançamento manual ─────────────────────────────────────────────
-function EntryModal({ onClose, onSaved }: Readonly<{ onClose: () => void; onSaved: () => void }>) {
+function EntryModal({ wallets, defaultWalletId, onClose, onSaved }: Readonly<{ wallets: BankrollWallet[]; defaultWalletId: number; onClose: () => void; onSaved: () => void }>) {
+  const [walletId, setWalletId] = useState(defaultWalletId);
   const [kind, setKind] = useState<BankrollEntry['kind']>('deposit');
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
 
   const create = useMutation({
-    mutationFn: () => api.createBankrollEntry({ kind, amount: Number(amount), note: note.trim() || null }),
+    mutationFn: () => api.createBankrollEntry({ wallet_id: walletId, kind, amount: Number(amount), note: note.trim() || null }),
     onSuccess: onSaved,
   });
   const valid = Number(amount) >= (kind === 'adjust' ? 0 : 0.01);
 
   return (
     <Modal title="Lançamento na banca" onClose={onClose}>
+      <WalletSelect wallets={wallets} value={walletId} onChange={setWalletId} />
       <Field label="Tipo">
         <select className="input" value={kind} onChange={(e) => setKind(e.target.value as BankrollEntry['kind'])}>
           <option value="deposit">Depósito (entrou caixa)</option>
@@ -365,12 +312,12 @@ function EntryModal({ onClose, onSaved }: Readonly<{ onClose: () => void; onSave
           <option value="adjust">Ajustar saldo (sincronizar)</option>
         </select>
       </Field>
-      <Field label={kind === 'adjust' ? 'Novo saldo da banca' : 'Valor'}>
+      <Field label={kind === 'adjust' ? 'Novo saldo da carteira' : 'Valor'}>
         <input className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={kind === 'adjust' ? 'saldo real hoje' : '100'} />
       </Field>
       <Field label="Nota"><input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="opcional" /></Field>
       <p style={{ fontSize: 11, color: 'var(--muted)', margin: '8px 0 0' }}>
-        Use “Ajustar saldo” quando o valor real da sua banca não bater com o do sistema — ele passa a valer o número informado.
+        Use “Ajustar saldo” quando o valor real da carteira não bater com o do sistema.
       </p>
 
       {create.isError && <div style={{ fontSize: 12, color: 'var(--loss)', marginTop: 8 }}>{String(create.error)}</div>}
@@ -381,12 +328,29 @@ function EntryModal({ onClose, onSaved }: Readonly<{ onClose: () => void; onSave
   );
 }
 
+// ─── Modal de nova carteira ─────────────────────────────────────────────────
+function WalletModal({ onClose, onSaved }: Readonly<{ onClose: () => void; onSaved: () => void }>) {
+  const [name, setName] = useState('');
+  const create = useMutation({ mutationFn: () => api.createWallet(name.trim()), onSuccess: onSaved });
+  return (
+    <Modal title="Nova carteira" onClose={onClose}>
+      <Field label="Nome da carteira">
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Bet365 — conta João" />
+      </Field>
+      <p style={{ fontSize: 11, color: 'var(--muted)', margin: '4px 0 0' }}>
+        Dica: use o nome do site/conta. Assim você distingue cada carteira no extrato da principal.
+      </p>
+      {create.isError && <div style={{ fontSize: 12, color: 'var(--loss)', marginTop: 8 }}>{String(create.error)}</div>}
+      <button className="btn btn-edge" style={{ width: '100%', marginTop: 16, fontWeight: 700 }} disabled={!name.trim() || create.isPending} onClick={() => create.mutate()}>
+        {create.isPending ? 'Criando…' : 'Criar carteira'}
+      </button>
+    </Modal>
+  );
+}
+
 function Modal({ title, onClose, children }: Readonly<{ title: string; onClose: () => void; children: React.ReactNode }>) {
   return (
-    <div
-      onClick={onClose}
-      style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
-    >
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div onClick={(e) => e.stopPropagation()} className="surface" style={{ width: '100%', maxWidth: 460, padding: 24, maxHeight: '90vh', overflow: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>{title}</h2>
@@ -407,13 +371,7 @@ function Field({ label, children }: Readonly<{ label: string; children: React.Re
   );
 }
 
-function RoiTable({
-  title,
-  rows,
-}: Readonly<{
-  title: string;
-  rows: Array<{ key: string; count: number; w: number; l: number; roi: number; staked: number }>;
-}>) {
+function RoiTable({ title, rows }: Readonly<{ title: string; rows: Array<{ key: string; count: number; w: number; l: number; roi: number; staked: number }> }>) {
   return (
     <div className="surface" style={{ padding: 0, overflow: 'hidden' }}>
       <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)', fontSize: 13, fontWeight: 500 }}>{title}</div>
@@ -426,10 +384,7 @@ function RoiTable({
           else if (r.roi < 0) cls = 'loss';
           const color: Record<typeof cls, string> = { win: 'var(--edge)', loss: 'var(--loss)', mute: 'var(--muted)' };
           return (
-            <div
-              key={r.key}
-              style={{ display: 'grid', gridTemplateColumns: '1fr 36px 36px 36px 70px', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--line)', alignItems: 'center', fontSize: 12 }}
-            >
+            <div key={r.key} style={{ display: 'grid', gridTemplateColumns: '1fr 36px 36px 36px 70px', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--line)', alignItems: 'center', fontSize: 12 }}>
               <span style={{ textTransform: 'capitalize' }}>{r.key}</span>
               <span style={{ fontFamily: 'var(--mono)', textAlign: 'right', color: 'var(--muted)' }}>{r.count}</span>
               <span style={{ fontFamily: 'var(--mono)', textAlign: 'right', color: 'var(--win)' }}>{r.w}W</span>

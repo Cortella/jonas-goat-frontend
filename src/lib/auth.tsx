@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, getToken, setToken, type SignupBody, type User } from './api';
+import { currencyForCountry, setActiveCurrency } from './money';
 
 interface AuthState {
   user: User | null;
@@ -42,6 +43,11 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Moeda da plataforma segue o país do usuário (Brasil = BRL, resto = USD).
+  useEffect(() => {
+    setActiveCurrency(currencyForCountry(user?.country));
+  }, [user]);
 
   const signup = useCallback(async (body: SignupBody) => {
     const r = await api.signup(body);

@@ -13,12 +13,21 @@ import { api } from '../lib/api';
  * sugestão do que gostaria de ver — salva no banco e triada no admin.
  */
 export function VisionPage() {
+  // Preço de Founder por região (Brasil R$, resto USD) — detectado por geoip.
+  const pricingQ = useQuery({
+    queryKey: ['public-pricing'],
+    queryFn: () => api.publicPricing(),
+    staleTime: 5 * 60_000,
+  });
+  const fp = pricingQ.data?.plans.founders;
+  const sym = pricingQ.data?.prices.symbol ?? '$';
+  const founderPrice = fp == null ? '' : `${sym}${Number.isInteger(fp) ? fp : fp.toFixed(2)}`;
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <AppBar />
       <Seo
         title="Visão & Founders"
-        description="Os Founders bancam a infraestrutura de IA do Jonas Goat e garantem 5 anos de acesso total à plataforma, grupo VIP no WhatsApp com os engenheiros, selo de fundador e créditos vitalícios. São só 100 vagas a US$ 500."
+        description="Os Founders bancam a infraestrutura de IA do Jonas Goat e garantem 3 anos de acesso total à plataforma, menu exclusivo de Founder, grupo VIP no WhatsApp com os engenheiros, selo de fundador e créditos vitalícios. São só 100 vagas."
         path="/founders"
       />
 
@@ -70,11 +79,11 @@ export function VisionPage() {
         >
           <div className="t-eyebrow" style={{ marginBottom: 10 }}>Plano Founders · 100 vagas</div>
           <h2 style={{ fontSize: 26, fontWeight: 600, margin: '0 0 10px', letterSpacing: '-0.01em' }}>
-            Banque a IA com a gente e garanta <span style={{ color: 'var(--edge)' }}>5 anos de acesso total</span>.
+            Banque a IA com a gente e garanta <span style={{ color: 'var(--edge)' }}>3 anos de acesso total</span>.
           </h2>
           <p style={{ fontSize: 15, color: 'var(--text-2)', lineHeight: 1.6, margin: '0 0 18px', maxWidth: 660 }}>
             Para refinar nosso modelo ao máximo e o mais rápido possível, precisamos bancar a
-            infraestrutura de IA. Por isso estamos abrindo <strong>100 vagas de Founder a US$ 500</strong> cada —
+            infraestrutura de IA. Por isso estamos abrindo <strong>100 vagas de Founder{founderPrice ? ` por ${founderPrice}` : ''}</strong> —
             quem entra agora financia esse salto e leva um lugar que ninguém mais terá.
           </p>
 
@@ -84,16 +93,20 @@ export function VisionPage() {
             <div style={{ flex: 1, minWidth: 240 }}>
               <strong style={{ fontSize: 14, display: 'block', marginBottom: 4 }}>Meta: US$ 50 mil para a infraestrutura de IA</strong>
               <span style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5 }}>
-                100 Founders × US$ 500 = US$ 50 mil. Quanto mais rápido fecharmos as vagas, mais rápido
-                o modelo evolui — e os Founders colhem esse avanço primeiro.
+                São 100 Founders financiando juntos esse salto. Quanto mais rápido fecharmos as vagas,
+                mais rápido o modelo evolui — e os Founders colhem esse avanço primeiro.
               </span>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
-            <Benefit icon="🎯" title="5 anos de acesso a TUDO">
-              Acesso total a todo o conteúdo da plataforma por 5 anos, sem limites. Os planos Pro vão
+            <Benefit icon="🎯" title="3 anos de acesso a TUDO">
+              Acesso total a todo o conteúdo da plataforma por 3 anos, sem limites. Os planos Pro vão
               passar a ter <strong>limite de previsões</strong> nos próximos meses — o Founder, não.
+            </Benefit>
+            <Benefit icon="⭐" title="Menu exclusivo de Founder">
+              Uma área só de Founders no app, com recursos e visões reservados a quem fundou a
+              plataforma.
             </Benefit>
             <Benefit icon="💬" title="Grupo VIP no WhatsApp">
               Entrada exclusiva num grupo fechado com os <strong>engenheiros da plataforma</strong> e

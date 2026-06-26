@@ -69,6 +69,15 @@ export function LandingPage() {
     enabled: !!ref,
     staleTime: 5 * 60_000,
   });
+  // Preço por região (Brasil R$, resto USD) — detectado por geoip no backend.
+  const pricingQ = useQuery({
+    queryKey: ['public-pricing'],
+    queryFn: () => api.publicPricing(),
+    staleTime: 5 * 60_000,
+  });
+  const sym = pricingQ.data?.prices.symbol ?? '$';
+  const px = (v: number | null | undefined) =>
+    v == null ? '—' : `${sym}${Number.isInteger(v) ? v : v.toFixed(2)}`;
 
   const live: Prediction[] = (predsQ.data?.predictions ?? []).slice(0, 4);
   const discount = settingsQ.data?.referral_discount_pct ?? 10;
@@ -312,17 +321,17 @@ export function LandingPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
           <PlanCard
             name="Free"
-            price="$0"
+            price={`${sym}0`}
             sub="pra sempre"
-            bullets={['5 previsões/dia', 'Top 5 ligas', 'Sem Kelly nem alertas']}
+            bullets={['Carteira + registro de apostas', 'Gestão de banca', 'Previsões só no Pro']}
             cta="Criar conta"
             href={signupHref}
           />
           <PlanCard
             highlight
             name="Pro"
-            price="$10"
-            sub="/mês ou $100/ano"
+            price={px(pricingQ.data?.plans.pro_monthly)}
+            sub={`/mês ou ${px(pricingQ.data?.plans.pro_yearly)}/ano`}
             bullets={[
               'Previsões ilimitadas',
               'Comparador de odds (7 books)',
@@ -334,9 +343,9 @@ export function LandingPage() {
           />
           <PlanCard
             name="Founders"
-            price="US$ 500"
-            sub="5 anos · 100 vagas"
-            bullets={['5 anos de acesso a tudo', 'Grupo VIP no WhatsApp', 'Selo + créditos vitalícios']}
+            price={px(pricingQ.data?.plans.founders)}
+            sub="3 anos · 100 vagas"
+            bullets={['3 anos de acesso a tudo', 'Grupo VIP no WhatsApp', 'Selo + créditos vitalícios']}
             cta="Quero ser Founder"
             href="/founders"
           />

@@ -2,9 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AppBar } from '../components/AppBar';
 import { SectionHeader, Stat } from '../components/atoms';
 import { api, type BankrollSummary, type Bet } from '../lib/api';
-
-const BRL = (v: number) =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 });
+import { money as BRL } from '../lib/money';
 
 const PCT = (v: number) => `${(v * 100).toFixed(1)}%`;
 

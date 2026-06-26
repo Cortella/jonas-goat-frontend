@@ -80,7 +80,7 @@ export function PricingPage() {
       emphasis: false,
       features: [
         ['Tudo do Pro, sem limite de previsões', true],
-        ['5 anos de acesso a todo o conteúdo', true],
+        ['3 anos de acesso a todo o conteúdo', true],
         ['Grupo VIP no WhatsApp com os engenheiros', true],
         ['Selo de Founder na futura rede social', true],
         ['Créditos vitalícios no sistema', true],
@@ -93,7 +93,7 @@ export function PricingPage() {
     <div style={{ padding: '64px 48px', background: 'var(--bg)', maxWidth: 1280, margin: '0 auto' }}>
       <Seo
         title="Planos Free, Pro e Founders"
-        description="Free para sempre, Pro a US$ 10/mês ou US$ 100/ano. Founders: 100 vagas com 5 anos de acesso total, grupo VIP no WhatsApp, selo de fundador e créditos vitalícios."
+        description="Free: carteira e registro de apostas. Pro: previsões ilimitadas. Founders: 100 vagas com 3 anos de acesso total, menu exclusivo, grupo VIP no WhatsApp, selo de fundador e créditos vitalícios. Preço em R$ no Brasil, em US$ nos demais países."
         path="/precos"
       />
       <div style={{ textAlign: 'center', marginBottom: 56 }}>

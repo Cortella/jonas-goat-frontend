@@ -3,10 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AppBar } from '../components/AppBar';
 import { SectionHeader, Stat } from '../components/atoms';
 import { api, type AffiliateMe, type AffiliateCommission } from '../lib/api';
-
-// Comissões de afiliado seguem a moeda da plataforma — USD.
-const BRL = (v: number) =>
-  v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+import { money as BRL } from '../lib/money';
 
 const STATUS_COLOR: Record<AffiliateCommission['status'], string> = {
   pending: 'var(--warn)',

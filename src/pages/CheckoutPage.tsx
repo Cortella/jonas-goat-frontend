@@ -12,10 +12,8 @@ import {
   type PaymentMethod,
   type Plan,
 } from '../lib/api';
+import { money } from '../lib/money';
 
-// Cobramos sempre em USD; a Stripe converte para a moeda local no checkout.
-const money = (v: number) =>
-  v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
 const METHOD_LABEL: Record<PaymentMethod, string> = {
   pix: 'Pix',

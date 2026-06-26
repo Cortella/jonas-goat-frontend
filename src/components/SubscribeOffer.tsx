@@ -61,7 +61,7 @@ export function SubscribeOffer() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <strong style={{ fontSize: 13, color: 'var(--text)' }}>Vire Founder · só 100 vagas</strong>
         <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-          5 anos de acesso total + grupo VIP no WhatsApp.
+          3 anos de acesso total + grupo VIP no WhatsApp.
         </span>
       </div>
       <Link

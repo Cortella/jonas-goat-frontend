@@ -6,6 +6,7 @@ import { Crest, Dot, ProbBar, Sparkline } from '../components/atoms';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { PlaceBetModal } from '../components/PlaceBetModal';
+import type { Prediction } from '../lib/types';
 
 interface ModelRow {
   name: string;
@@ -21,29 +22,41 @@ const MODELS: ModelRow[] = [
   { name: 'Ensemble', weight: 100, p: [47, 26, 27], emphasis: true },
 ];
 
-type MarketRow = [string, number, number, number, number, string, string, 'edge' | null];
+// Mercados reais (a IA já calcula 1X2, gols, escanteios e cartões). Montamos as
+// linhas a partir da previsão e filtramos por categoria nas abas.
+const MARKET_TABS = ['Todos', 'Resultado', 'Gols', 'Escanteios', 'Cartões'] as const;
+interface MarketRowData { label: string; prob: number; cat: string }
 
-const MARKETS: MarketRow[] = [
-  ['Vitória Leverkusen (2)', 27.0, 3.7, 3.32, 3.45, 'Pinnacle', '+9.1%', 'edge'],
-  ['Empate (X)', 26.0, 3.85, 3.6, 3.65, 'Bet365', '−1.4%', null],
-  ['Vitória Bayern (1)', 47.0, 2.13, 2.05, 2.1, 'Betano', '−1.5%', null],
-  ['Over 1.5 gols', 84.5, 1.18, 1.16, 1.18, 'Pinnacle', '−0.4%', null],
-  ['Over 2.5 gols', 64.5, 1.55, 1.5, 1.55, 'Betfair', '+0.0%', null],
-  ['Over 3.5 gols', 38.7, 2.58, 2.45, 2.55, 'Bet365', '−1.3%', null],
-  ['Ambas marcam (sim)', 61.2, 1.63, 1.58, 1.62, 'Pinnacle', '+0.6%', null],
-  ['Resultado + ambas marcam · 2/sim', 18.5, 5.40, 5.10, 5.40, 'Bet365', '+0.0%', 'edge'],
-  ['Dupla chance · X2', 53.0, 1.89, 1.78, 1.85, 'Betano', '−1.9%', null],
-  ['Handicap asiático · 2 +1.0', 62.0, 1.61, 1.55, 1.60, 'Pinnacle', '−0.2%', null],
-  ['Escanteios > 9.5', 73.1, 1.37, 1.30, 1.35, 'Betfair', '−1.4%', null],
-  ['Escanteios > 10.5', 58.4, 1.71, 1.62, 1.68, 'KTO', '+1.8%', null],
-  ['Cartões > 4.5', 56.0, 1.79, 1.72, 1.78, 'Bet365', '+0.6%', null],
-  ['Total chutes ao alvo > 9.5', 64.0, 1.56, 1.50, 1.55, 'Pinnacle', '−0.8%', null],
-  ['Wirtz marca (jogador)', 38.0, 2.63, 2.4, 2.55, 'Pinnacle', '+6.4%', 'edge'],
-  ['Kane marca (jogador)', 64.0, 1.56, 1.52, 1.55, 'Bet365', '+0.6%', null],
-  ['Wirtz dá assistência', 22.0, 4.55, 4.20, 4.40, 'Betano', '−3.2%', null],
-  ['Marcador a qualquer momento · Boniface', 41.0, 2.44, 2.30, 2.45, 'Pinnacle', '+0.4%', null],
-  ['Tempo do 1º gol < 30min', 49.5, 2.02, 1.90, 2.00, 'Bet365', '−1.0%', null],
-];
+// corners/cards vêm como mapa { corners_over_9_5: 0.73, ... }. Extrai as linhas
+// "over" ordenadas pela linha.
+function overRows(obj: Record<string, number> | null, prefix: string, word: string, cat: string): MarketRowData[] {
+  if (!obj) return [];
+  const rows: Array<MarketRowData & { line: number }> = [];
+  for (const [k, v] of Object.entries(obj)) {
+    if (!k.startsWith(prefix)) continue;
+    const line = Number(k.slice(prefix.length).replace('_', '.'));
+    if (!Number.isFinite(line)) continue;
+    rows.push({ line, label: `${word} +${line}`, prob: Number(v) || 0, cat });
+  }
+  return rows.sort((a, b) => a.line - b.line).map(({ label, prob, cat: c }) => ({ label, prob, cat: c }));
+}
+
+function buildMarketRows(pred: Prediction | undefined, home: string, away: string, tab: string): MarketRowData[] {
+  if (!pred) return [];
+  const rows: MarketRowData[] = [];
+  const e = pred.ensemble ?? {};
+  if (e.prob_home != null) rows.push({ label: `Vitória ${home}`, prob: e.prob_home, cat: 'Resultado' });
+  if (e.prob_draw != null) rows.push({ label: 'Empate', prob: e.prob_draw, cat: 'Resultado' });
+  if (e.prob_away != null) rows.push({ label: `Vitória ${away}`, prob: e.prob_away, cat: 'Resultado' });
+  const mk = pred.markets ?? {};
+  if (mk.over_1_5 != null) rows.push({ label: 'Mais de 1.5 gols', prob: mk.over_1_5, cat: 'Gols' });
+  if (mk.over_2_5 != null) rows.push({ label: 'Mais de 2.5 gols', prob: mk.over_2_5, cat: 'Gols' });
+  if (mk.over_3_5 != null) rows.push({ label: 'Mais de 3.5 gols', prob: mk.over_3_5, cat: 'Gols' });
+  if (mk.btts_yes != null) rows.push({ label: 'Ambas marcam', prob: mk.btts_yes, cat: 'Gols' });
+  rows.push(...overRows(pred.corners, 'corners_over_', 'Escanteios', 'Escanteios'));
+  rows.push(...overRows(pred.cards, 'cards_over_', 'Cartões', 'Cartões'));
+  return tab === 'Todos' ? rows : rows.filter((r) => r.cat === tab);
+}
 
 export function MatchDetailPage() {
   const { matchId } = useParams<{ matchId: string }>();
@@ -73,6 +86,8 @@ export function MatchDetailPage() {
 
   const home = q.data?.home_team || 'Bayern de Munique';
   const away = q.data?.away_team || 'Bayer Leverkusen';
+  const [tab, setTab] = useState<string>('Todos');
+  const marketRows = buildMarketRows(q.data, home, away, tab);
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -222,54 +237,45 @@ export function MatchDetailPage() {
             </div>
           )}
           <div className="surface" style={{ padding: 0, overflow: 'hidden', filter: gated ? 'blur(5px)' : undefined, pointerEvents: gated ? 'none' : undefined }}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 14, fontWeight: 500 }}>Mercados disponíveis</div>
-              <div style={{ display: 'flex', gap: 4, fontFamily: 'var(--mono)', fontSize: 11 }}>
-                {['Todos', 'Resultado', 'Gols', 'Escanteios', 'Cartões', 'Jogadores'].map((t, i) => (
-                  <span
-                    key={t}
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 500 }}>Mercados do modelo</div>
+              <div style={{ display: 'flex', gap: 4, fontFamily: 'var(--mono)', fontSize: 11, flexWrap: 'wrap' }}>
+                {MARKET_TABS.map((tb) => (
+                  <button
+                    key={tb}
+                    type="button"
+                    onClick={() => setTab(tb)}
                     style={{
-                      padding: '4px 10px',
-                      borderRadius: 999,
-                      background: i === 0 ? 'var(--surface-2)' : 'transparent',
-                      color: i === 0 ? 'var(--text)' : 'var(--muted)',
-                      cursor: 'pointer',
+                      padding: '4px 10px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                      fontFamily: 'var(--mono)', fontSize: 11,
+                      background: tab === tb ? 'var(--surface-2)' : 'transparent',
+                      color: tab === tb ? 'var(--text)' : 'var(--muted)',
                     }}
                   >
-                    {t}
-                  </span>
+                    {tb}
+                  </button>
                 ))}
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '180px 80px 80px 80px 100px 1fr 80px', gap: 12, padding: '12px 20px', fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 84px 120px', gap: 12, padding: '10px 20px', fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               <span>Mercado</span>
-              <span style={{ textAlign: 'right' }}>Prob</span>
-              <span style={{ textAlign: 'right' }}>Justa</span>
-              <span style={{ textAlign: 'right' }}>Mkt</span>
-              <span style={{ textAlign: 'right' }}>Best</span>
-              <span></span>
-              <span style={{ textAlign: 'right' }}>EV</span>
+              <span style={{ textAlign: 'right' }}>Probabilidade</span>
+              <span />
             </div>
-            {MARKETS.map((r, i) => (
+            {marketRows.length === 0 ? (
+              <div style={{ padding: 24, color: 'var(--muted)', fontSize: 12 }}>
+                Sem dados deste mercado para este jogo.
+              </div>
+            ) : marketRows.map((m) => (
               <div
-                key={i}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '180px 80px 80px 80px 100px 1fr 80px',
-                  gap: 12,
-                  padding: '12px 20px',
-                  borderTop: '1px solid var(--line)',
-                  alignItems: 'center',
-                  fontSize: 12,
-                }}
+                key={m.label}
+                style={{ display: 'grid', gridTemplateColumns: '1fr 84px 120px', gap: 12, padding: '11px 20px', borderTop: '1px solid var(--line)', alignItems: 'center', fontSize: 12 }}
               >
-                <span style={{ fontWeight: r[7] === 'edge' ? 500 : 400 }}>{r[0]}</span>
-                <span style={{ fontFamily: 'var(--mono)', textAlign: 'right' }}>{r[1].toFixed(1)}%</span>
-                <span style={{ fontFamily: 'var(--mono)', textAlign: 'right', color: 'var(--muted)' }}>{r[2].toFixed(2)}</span>
-                <span style={{ fontFamily: 'var(--mono)', textAlign: 'right', color: 'var(--muted)' }}>{r[3].toFixed(2)}</span>
-                <span style={{ fontFamily: 'var(--mono)', textAlign: 'right', fontWeight: 500, color: r[7] === 'edge' ? 'var(--edge)' : 'var(--text)' }}>{r[4].toFixed(2)}</span>
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>{r[5]}</span>
-                <span style={{ fontFamily: 'var(--mono)', textAlign: 'right', fontWeight: 600, color: r[7] === 'edge' ? 'var(--edge)' : 'var(--muted)' }}>{r[6]}</span>
+                <span>{m.label}</span>
+                <span style={{ fontFamily: 'var(--mono)', textAlign: 'right', fontWeight: 500 }}>{(m.prob * 100).toFixed(1)}%</span>
+                <div style={{ height: 6, borderRadius: 999, background: 'var(--bg-2)', overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(Math.max(m.prob, 0), 1) * 100}%`, height: '100%', background: 'var(--edge)' }} />
+                </div>
               </div>
             ))}
           </div>

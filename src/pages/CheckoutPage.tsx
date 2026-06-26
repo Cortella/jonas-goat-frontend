@@ -40,6 +40,28 @@ const CYCLE_LABEL: Record<BillingCycle, string> = {
   lifetime: 'Vitalício',
 };
 
+const PLAN_TAGLINE: Partial<Record<Plan, string>> = {
+  pro: 'Tudo liberado, previsões ilimitadas',
+  founders: 'Preço travado para sempre',
+};
+
+// Reforço de valor no resumo — o que a pessoa leva ao assinar.
+const PLAN_INCLUDES: Partial<Record<Plan, string[]>> = {
+  pro: [
+    'Previsões ilimitadas',
+    'Todas as ligas + Copa do Mundo 2026',
+    'Todos os mercados (1X2, OU, BTTS, escanteios…)',
+    'Sugestão de Kelly + bankroll tracker',
+    'Alertas no Telegram, email e push',
+  ],
+  founders: [
+    'Tudo do Pro — para sempre',
+    'Preço de fundador travado',
+    'Todo recurso futuro incluído',
+    'Selo de Founder',
+  ],
+};
+
 export function CheckoutPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -104,10 +126,12 @@ export function CheckoutPage() {
   const selectedPackage: CreditPackage | undefined =
     kind === 'credits' ? config.credit_packages.find((p) => p.id === packageId) : undefined;
 
+  const planObj = config.plans.find((p) => p.plan === plan);
+
   // Preço-base e prévia de descontos (espelho do backend, só para exibir).
   const base =
     kind === 'plan'
-      ? config.plans.find((p) => p.plan === plan)?.cycles.find((c) => c.cycle === cycle)?.price_brl ?? 0
+      ? planObj?.cycles.find((c) => c.cycle === cycle)?.price_brl ?? 0
       : selectedPackage?.price_brl ?? 0;
 
   const discounts: Array<{ label: string; value: number }> = [];
@@ -191,31 +215,39 @@ export function CheckoutPage() {
     );
   }
 
-  const planObj = config.plans.find((p) => p.plan === plan);
+  // Economia do anual vs mensal (quando o plano tem os dois ciclos).
+  const monthly = planObj?.cycles.find((c) => c.cycle === 'monthly')?.price_brl;
+  const yearly = planObj?.cycles.find((c) => c.cycle === 'yearly')?.price_brl;
+  const yearlySavePct =
+    monthly && yearly && monthly > 0 ? Math.round((1 - yearly / (monthly * 12)) * 100) : 0;
+
+  const includes = kind === 'plan' ? PLAN_INCLUDES[plan] : undefined;
 
   return (
     <Shell>
       <Seo title="Checkout" description="Finalize sua compra" path="/checkout" noindex />
       <style>{`
-        .co-grid { display:grid; grid-template-columns: minmax(0,1fr) 380px; gap:24px; align-items:start; }
-        @media (max-width: 880px){ .co-grid{ grid-template-columns:1fr; } .co-summary{ position:static !important; } }
+        .co-grid { display:grid; grid-template-columns: minmax(0,1fr) 400px; gap:28px; align-items:start; }
+        @media (max-width: 900px){ .co-grid{ grid-template-columns:1fr; } .co-summary{ position:static !important; } }
       `}</style>
 
-      <div style={{ maxWidth: 1040, margin: '0 auto', padding: '28px 20px 90px' }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, margin: '0 0 4px' }}>Finalize sua assinatura</h1>
-        <p style={{ color: 'var(--text-2)', fontSize: 14, margin: '0 0 24px' }}>
-          Leva menos de 1 minuto. Acesso liberado na hora.
+      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '36px 20px 100px' }}>
+        <h1 style={{ fontSize: 30, fontWeight: 700, margin: '0 0 6px', letterSpacing: '-0.02em' }}>
+          Finalize sua assinatura
+        </h1>
+        <p style={{ color: 'var(--text-2)', fontSize: 15, margin: '0 0 28px' }}>
+          Menos de 1 minuto. Acesso liberado na hora da confirmação.
         </p>
 
         <div className="co-grid">
           {/* ─── Coluna do formulário ─── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* 1. O que você leva */}
+            {/* 1. Plano */}
             <Card>
               <StepHead n={1} title={kind === 'plan' ? 'Escolha seu plano' : 'Carregar créditos'} />
-              <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-                <Toggle on={kind === 'plan'} onClick={() => setKind('plan')}>Planos</Toggle>
-                <Toggle on={kind === 'credits'} onClick={() => setKind('credits')}>Créditos</Toggle>
+              <div style={{ display: 'inline-flex', gap: 4, marginBottom: 20, padding: 4, background: 'var(--bg-2)', borderRadius: 999, border: '1px solid var(--line)' }}>
+                <Seg on={kind === 'plan'} onClick={() => setKind('plan')}>Planos</Seg>
+                <Seg on={kind === 'credits'} onClick={() => setKind('credits')}>Créditos</Seg>
               </div>
 
               {kind === 'plan' ? (
@@ -223,30 +255,40 @@ export function CheckoutPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     {config.plans.map((p) => {
                       const from = Math.min(...p.cycles.map((c) => c.price_brl));
+                      const popular = p.plan === 'pro';
+                      const eternal = p.plan === 'founders';
                       return (
-                        <Selectable
+                        <PlanCard
                           key={p.plan}
                           active={plan === p.plan}
+                          name={p.plan}
+                          from={from}
+                          tagline={PLAN_TAGLINE[p.plan]}
+                          badge={popular ? 'Mais popular' : eternal ? 'Eterno' : undefined}
                           onClick={() => {
                             setPlan(p.plan);
                             const cycles = p.cycles.map((c) => c.cycle);
                             if (!cycles.includes(cycle)) setCycle(cycles[0]);
                           }}
-                        >
-                          <div style={{ fontWeight: 700, textTransform: 'capitalize', fontSize: 15 }}>{p.plan}</div>
-                          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                            a partir de {BRL(from)}
-                          </div>
-                        </Selectable>
+                        />
                       );
                     })}
                   </div>
-                  <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {planObj?.cycles.map((c) => (
-                      <Toggle key={c.cycle} on={cycle === c.cycle} onClick={() => setCycle(c.cycle)}>
-                        {CYCLE_LABEL[c.cycle]} · {BRL(c.price_brl)}
-                      </Toggle>
-                    ))}
+
+                  <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {planObj?.cycles.map((c) => {
+                      const save = c.cycle === 'yearly' && yearlySavePct > 0 ? `economize ${yearlySavePct}%` : undefined;
+                      return (
+                        <CycleChip
+                          key={c.cycle}
+                          on={cycle === c.cycle}
+                          onClick={() => setCycle(c.cycle)}
+                          label={CYCLE_LABEL[c.cycle]}
+                          price={BRL(c.price_brl)}
+                          save={save}
+                        />
+                      );
+                    })}
                   </div>
                 </>
               ) : (
@@ -307,6 +349,7 @@ export function CheckoutPage() {
                       gap: 12,
                       background: method === m ? 'var(--edge-soft)' : 'var(--bg-2)',
                       border: `1.5px solid ${method === m ? 'var(--edge)' : 'var(--line)'}`,
+                      transition: 'border-color .12s, background .12s',
                     }}
                   >
                     <span style={{ fontSize: 20 }}>{METHOD_ICON[m]}</span>
@@ -366,43 +409,70 @@ export function CheckoutPage() {
           </div>
 
           {/* ─── Resumo lateral fixo ─── */}
-          <div className="co-summary surface" style={{ padding: 22, position: 'sticky', top: 24 }}>
-            <div className="t-eyebrow" style={{ marginBottom: 14 }}>Resumo do pedido</div>
-            <Row
-              label={kind === 'plan' ? `Plano ${plan} · ${CYCLE_LABEL[cycle]}` : 'Recarga de créditos'}
-              value={BRL(base)}
-            />
-            {discounts.map((d) => (
-              <Row key={d.label} label={d.label} value={`− ${BRL(d.value)}`} color="var(--edge)" />
-            ))}
-            {walletApplied > 0 && <Row label="Saldo de créditos" value={`− ${BRL(walletApplied)}`} color="var(--edge)" />}
-            {kind === 'credits' && (
-              <Row label="Créditos recebidos" value={BRL(creditsReceived)} color="var(--edge)" />
-            )}
-            <hr className="hl" style={{ margin: '12px 0' }} />
-            <Row label="Total" value={BRL(amount)} bold />
-
-            {error && <div style={{ fontSize: 12, color: 'var(--loss)', marginTop: 12 }}>{error}</div>}
-
-            <button
-              className="btn btn-edge"
-              style={{ width: '100%', marginTop: 16, padding: '13px 0', fontSize: 15, fontWeight: 700 }}
-              onClick={submit}
-              disabled={!canPay}
+          <div className="co-summary" style={{ position: 'sticky', top: 24 }}>
+            <div
+              className="surface"
+              style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--edge)' }}
             >
-              {creating ? 'Processando…' : amount > 0 ? `Pagar ${BRL(amount)}` : 'Finalizar'}
-            </button>
-
-            {!canPay && !creating && cpfDigits.length !== 11 && (
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8, textAlign: 'center' }}>
-                Preencha seu CPF para continuar.
+              {/* Cabeçalho com destaque */}
+              <div style={{ padding: '16px 22px', background: 'var(--edge-soft)', borderBottom: '1px solid var(--line)' }}>
+                <div className="t-eyebrow" style={{ marginBottom: 2 }}>Resumo do pedido</div>
+                <strong style={{ fontSize: 15, textTransform: 'capitalize' }}>
+                  {kind === 'plan' ? `Jonas Goat ${plan}` : 'Recarga de créditos'}
+                </strong>
               </div>
-            )}
 
-            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <Trust icon="🔒" text="Pagamento criptografado e 100% seguro" />
-              <Trust icon="↩️" text="7 dias de garantia — cancele quando quiser" />
-              <Trust icon="⚡" text="Acesso liberado na hora da confirmação" />
+              <div style={{ padding: 22 }}>
+                <Row
+                  label={kind === 'plan' ? CYCLE_LABEL[cycle] : 'Pacote selecionado'}
+                  value={BRL(base)}
+                />
+                {discounts.map((d) => (
+                  <Row key={d.label} label={d.label} value={`− ${BRL(d.value)}`} color="var(--edge)" />
+                ))}
+                {walletApplied > 0 && <Row label="Saldo de créditos" value={`− ${BRL(walletApplied)}`} color="var(--edge)" />}
+                {kind === 'credits' && (
+                  <Row label="Créditos recebidos" value={BRL(creditsReceived)} color="var(--edge)" />
+                )}
+                <hr className="hl" style={{ margin: '12px 0' }} />
+                <Row label="Total" value={BRL(amount)} bold />
+
+                {error && <div style={{ fontSize: 12, color: 'var(--loss)', marginTop: 12 }}>{error}</div>}
+
+                <button
+                  className="btn btn-edge"
+                  style={{ width: '100%', marginTop: 16, padding: '14px 0', fontSize: 16, fontWeight: 700 }}
+                  onClick={submit}
+                  disabled={!canPay}
+                >
+                  {creating ? 'Processando…' : amount > 0 ? `Pagar ${BRL(amount)}` : 'Finalizar'}
+                </button>
+
+                {!canPay && !creating && cpfDigits.length !== 11 && (
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8, textAlign: 'center' }}>
+                    Preencha seu CPF para continuar.
+                  </div>
+                )}
+
+                {includes && includes.length > 0 && (
+                  <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--line)' }}>
+                    <div className="t-eyebrow" style={{ marginBottom: 10 }}>Incluído</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {includes.map((f) => (
+                        <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: 'var(--text-2)' }}>
+                          <span aria-hidden style={{ color: 'var(--edge)', flexShrink: 0 }}>✓</span> {f}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <Trust icon="🔒" text="Pagamento criptografado e 100% seguro" />
+                  <Trust icon="↩️" text="7 dias de garantia — cancele quando quiser" />
+                  <Trust icon="⚡" text="Acesso liberado na hora da confirmação" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -539,7 +609,7 @@ function PayStep({ order, gateway, onDone }: { order: Order; gateway: string; on
   );
 }
 
-// ─── Pequenos componentes de layout ─────────────────────────────────────────
+// ─── Layout / componentes ───────────────────────────────────────────────────
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -580,6 +650,70 @@ function StepHead({ n, title, sub }: { n: number; title: string; sub?: string })
   );
 }
 
+function PlanCard({
+  active, name, from, tagline, badge, onClick,
+}: {
+  active: boolean; name: string; from: number; tagline?: string; badge?: string; onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        position: 'relative',
+        textAlign: 'left',
+        padding: 18,
+        cursor: 'pointer',
+        borderRadius: 14,
+        background: active ? 'var(--edge-soft)' : 'var(--bg-2)',
+        border: `1.5px solid ${active ? 'var(--edge)' : 'var(--line)'}`,
+        transition: 'border-color .12s, background .12s',
+      }}
+    >
+      {badge && (
+        <span
+          className="tag tag-edge"
+          style={{ position: 'absolute', top: -9, right: 14, fontSize: 10, padding: '2px 8px', fontWeight: 700 }}
+        >
+          {badge}
+        </span>
+      )}
+      <div style={{ fontWeight: 700, textTransform: 'capitalize', fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        {name}
+        {active && <span aria-hidden style={{ color: 'var(--edge)', fontSize: 14 }}>✓</span>}
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>a partir de <strong style={{ color: 'var(--text)' }}>{BRL(from)}</strong></div>
+      {tagline && <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 8, lineHeight: 1.4 }}>{tagline}</div>}
+    </button>
+  );
+}
+
+function CycleChip({
+  on, onClick, label, price, save,
+}: {
+  on: boolean; onClick: () => void; label: string; price: string; save?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: '10px 16px',
+        borderRadius: 12,
+        cursor: 'pointer',
+        textAlign: 'left',
+        background: on ? 'var(--edge-soft)' : 'var(--bg-2)',
+        border: `1.5px solid ${on ? 'var(--edge)' : 'var(--line)'}`,
+      }}
+    >
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+        {label} · <span style={{ fontFamily: 'var(--mono)' }}>{price}</span>
+      </div>
+      {save && <div style={{ fontSize: 11, color: 'var(--edge)', fontWeight: 600, marginTop: 2 }}>{save}</div>}
+    </button>
+  );
+}
+
 function Selectable({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -599,20 +733,20 @@ function Selectable({ active, onClick, children }: { active: boolean; onClick: (
   );
 }
 
-function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+function Seg({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
       style={{
-        padding: '8px 14px',
+        padding: '7px 18px',
         borderRadius: 999,
         fontSize: 13,
         cursor: 'pointer',
-        background: on ? 'var(--surface-2)' : 'transparent',
-        border: `1px solid ${on ? 'var(--edge)' : 'var(--line)'}`,
-        color: on ? 'var(--text)' : 'var(--text-2)',
-        fontWeight: on ? 600 : 400,
+        border: 'none',
+        background: on ? 'var(--edge)' : 'transparent',
+        color: on ? 'oklch(0.16 0.006 240)' : 'var(--text-2)',
+        fontWeight: on ? 700 : 500,
       }}
     >
       {children}
@@ -622,7 +756,7 @@ function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; c
 
 function Row({ label, value, color, bold }: { label: string; value: string; color?: string; bold?: boolean }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: bold ? 17 : 13, padding: '5px 0', gap: 12 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: bold ? 18 : 13, padding: '5px 0', gap: 12 }}>
       <span style={{ color: 'var(--text-2)', fontWeight: bold ? 700 : 400 }}>{label}</span>
       <span style={{ fontFamily: 'var(--mono)', color: color || 'var(--text)', fontWeight: bold ? 700 : 400, whiteSpace: 'nowrap' }}>
         {value}

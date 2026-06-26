@@ -125,11 +125,11 @@ export function LandingPage() {
     name: 'Jonas Goat — assinatura Pro',
     description: 'Análises e previsões com value bets para Top 5 ligas + UCL + Copa do Mundo 2026.',
     image: 'https://www.jonasgoat.com/logo.png',
-    brand: { '@id': 'https://www.jonasgoat.com/#organization' },
+    brand: { '@type': 'Brand', name: 'Jonas Goat' },
     offers: {
       '@type': 'Offer',
       priceCurrency: 'BRL',
-      price: '49.00',
+      price: '49.90',
       url: 'https://www.jonasgoat.com/precos',
       availability: 'https://schema.org/InStock',
       priceValidUntil: '2026-12-31',

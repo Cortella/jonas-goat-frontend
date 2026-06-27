@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Logo,
   ProbBar,
-  EVChip,
   Stat,
   SectionHeader,
   Dot,
@@ -123,7 +122,7 @@ export function LandingPage() {
     '@type': 'Product',
     '@id': 'https://www.jonasgoat.com/#product',
     name: 'Jonas Goat — assinatura Pro',
-    description: 'Análises e previsões com value bets para Top 5 ligas + UCL + Copa do Mundo 2026.',
+    description: 'Previsões e probabilidades de futebol por modelos estatísticos para Top 5 ligas, Champions e Copa do Mundo 2026.',
     image: 'https://www.jonasgoat.com/logo.png',
     brand: { '@type': 'Brand', name: 'Jonas Goat' },
     offers: {
@@ -169,8 +168,8 @@ export function LandingPage() {
   return (
     <div style={{ background: 'var(--bg)', color: 'var(--text)', overflowX: 'hidden' }}>
       <Seo
-        title="Jonas Goat — Vantagem matemática sobre as casas de apostas"
-        description="Três modelos estatísticos rodando em ensemble identificam value bets reais em odds publicadas por bookmakers. Análise transparente, sem palpite, sem hype. Top 5 ligas + UCL + Copa do Mundo 2026."
+        title="Jonas Goat — Previsões de futebol com modelos estatísticos"
+        description="Três modelos estatísticos em ensemble calculam a probabilidade real de cada jogo. Análise transparente das Top 5 ligas, Champions e Copa do Mundo 2026. Sem achismo, sem hype."
         path="/"
         schema={faqSchema}
       />
@@ -306,7 +305,7 @@ export function LandingPage() {
                 flexWrap: 'wrap',
               }}
             >
-              <Stat label="ROI 24m" value="+12.4%" color="var(--edge)" sub={t('landing.stat_roi_sub')} />
+              <Stat label="Jogos modelados" value="14k+" color="var(--edge)" sub={t('landing.stat_roi_sub')} />
               <Stat label="Acerto 1X2" value="54.2%" sub={t('landing.stat_accuracy_sub')} />
               <Stat label="Brier score" value="0.198" sub={t('landing.stat_brier_sub')} />
               <Stat label="Ligas cobertas" value="07" sub={t('landing.stat_leagues_sub')} />
@@ -379,7 +378,7 @@ export function LandingPage() {
             name="Free"
             price={`${sym}0`}
             sub="pra sempre"
-            bullets={['Carteira + registro de apostas', 'Gestão de banca', 'Previsões só no Pro']}
+            bullets={['Carteira + registro de jogos', 'Gestão de caixa', 'Previsões só no Pro']}
             cta="Criar conta"
             href={signupHref}
           />
@@ -390,9 +389,9 @@ export function LandingPage() {
             sub={`/mês ou ${px(pricingQ.data?.plans.pro_yearly)}/ano`}
             bullets={[
               'Previsões ilimitadas',
-              'Comparador de odds (7 books)',
+              'Comparador de cotações (7 fontes)',
               'Alertas Telegram + email',
-              'Bankroll tracker + Kelly',
+              'Controle de caixa + sugestões',
             ]}
             cta={referralActive ? `Assinar com ${discount}% off` : 'Assinar Pro'}
             href={signupHref}
@@ -568,7 +567,7 @@ function LivePreviewCard({
             {t('landing.live_title')} {now}
           </span>
         </div>
-        <span className="t-eyebrow">EV ≥ 5%</span>
+        <span className="t-eyebrow">Maior confiança</span>
       </div>
       {loading && (
         <div style={{ padding: 32, color: 'var(--muted)', fontSize: 13 }}>
@@ -612,7 +611,7 @@ function LivePreviewCard({
                   {p.home_team} · {p.away_team}
                 </span>
               </div>
-              {ev > 0.01 && <EVChip value={ev * 100} />}
+              {ev > 0.01 && <span className="tag tag-edge" style={{ fontSize: 11 }}>Destaque</span>}
             </div>
             <ProbBar home={probHome} draw={probDraw} away={probAway} />
             <div

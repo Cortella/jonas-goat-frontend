@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Logo,
@@ -48,24 +48,10 @@ function NavItem({ to, href, children }: Readonly<{ to?: string; href?: string; 
 }
 
 export function LandingPage() {
-  const [searchParams] = useSearchParams();
-  const ref = searchParams.get('ref')?.trim().toLowerCase() ?? '';
-
   const predsQ = useQuery({
     queryKey: ['landing-predictions'],
     queryFn: () => api.predictions(),
     staleTime: 60_000,
-  });
-  const settingsQ = useQuery({
-    queryKey: ['public-settings'],
-    queryFn: () => api.publicSettings(),
-    staleTime: 5 * 60_000,
-  });
-  const referralQ = useQuery({
-    queryKey: ['public-referral', ref],
-    queryFn: () => api.publicReferral(ref),
-    enabled: !!ref,
-    staleTime: 5 * 60_000,
   });
   // Preço por região (Brasil R$, resto USD) — detectado por geoip no backend.
   const pricingQ = useQuery({
@@ -80,14 +66,8 @@ export function LandingPage() {
   const reviewsQ = useQuery({ queryKey: ['public-reviews'], queryFn: () => api.reviews(), staleTime: 5 * 60_000 });
 
   const live: Prediction[] = (predsQ.data?.predictions ?? []).slice(0, 4);
-  const discount = settingsQ.data?.referral_discount_pct ?? 10;
-  const sponsor = referralQ.data?.sponsor ?? null;
-  // Programa de afiliados pausado → ignora qualquer ?ref= (foco na Copa).
-  const affiliatesEnabled = settingsQ.data?.affiliate_program_enabled ?? false;
-  const referralActive = !!sponsor && affiliatesEnabled;
 
-  // Build a deep link to /signup that preserves the ref code.
-  const signupHref = ref ? `/signup?ref=${encodeURIComponent(ref)}` : '/signup';
+  const signupHref = '/signup';
 
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -101,7 +81,7 @@ export function LandingPage() {
   const DIFFERENTIATORS = [
     { icon: '🧮', title: t('landing.diff1_title'), desc: t('landing.diff1_desc') },
     { icon: '📊', title: t('landing.diff2_title'), desc: t('landing.diff2_desc') },
-    { icon: '🐐', title: t('landing.diff3_title'), desc: t('landing.diff3_desc') },
+    { icon: '🔄', title: t('landing.diff3_title'), desc: t('landing.diff3_desc') },
     { icon: '⚖️', title: t('landing.diff4_title'), desc: t('landing.diff4_desc') },
   ];
 
@@ -218,10 +198,6 @@ export function LandingPage() {
         )}
       </header>
 
-      {/* ─── Referral banner (only when ?ref= is valid) ─── */}
-      {referralActive && (
-        <ReferralBanner sponsorName={sponsor?.display ?? ''} discount={discount} signupHref={signupHref} />
-      )}
 
       {/* ─── Hero ─────────────────────────────────────────────────── */}
       <section style={{ position: 'relative' }}>
@@ -287,9 +263,7 @@ export function LandingPage() {
             </p>
             <div style={{ display: 'flex', gap: 12, marginTop: 32, flexWrap: 'wrap' }}>
               <Link to={signupHref} className="btn btn-edge" style={{ textDecoration: 'none' }}>
-                {referralActive
-                  ? t('landing.cta_signup_discount', { discount })
-                  : t('landing.cta_signup')}
+                {t('landing.cta_signup')}
               </Link>
               <Link to="/metodologia" className="btn btn-ghost" style={{ textDecoration: 'none' }}>
                 {t('landing.cta_backtest')}
@@ -393,7 +367,7 @@ export function LandingPage() {
               'Alertas Telegram + email',
               'Controle de caixa + sugestões',
             ]}
-            cta={referralActive ? `Assinar com ${discount}% off` : 'Assinar Pro'}
+            cta="Assinar Pro"
             href={signupHref}
           />
           <PlanCard
@@ -509,29 +483,6 @@ function ReviewsProof({ data }: Readonly<{ data?: ReviewsResponse }>) {
   );
 }
 
-function ReferralBanner({
-  sponsorName,
-  discount,
-  signupHref,
-}: Readonly<{ sponsorName: string; discount: number; signupHref: string }>) {
-  const { t } = useTranslation();
-  return (
-    <aside
-      style={{
-        background: 'oklch(0.88 0.17 125 / 0.10)',
-        borderBottom: '1px solid oklch(0.88 0.17 125 / 0.4)',
-        padding: '12px 24px',
-        textAlign: 'center',
-        fontSize: 13,
-      }}
-    >
-      🎁 {t('landing.referral_banner', { sponsor: sponsorName, discount })} · 
-      <Link to={signupHref} style={{ color: 'var(--edge)', fontWeight: 600 }}>
-        {t('landing.cta_signup')}
-      </Link>
-    </aside>
-  );
-}
 
 function LivePreviewCard({
   preds,

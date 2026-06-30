@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { Logo } from '../components/atoms';
@@ -60,7 +59,6 @@ export function SignupPage() {
       /* erros mostrados no fluxo de login; aqui mantém o cadastro normal */
     }
   };
-  const [searchParams] = useSearchParams();
 
   // Identificação
   const [email, setEmail] = useState('');
@@ -78,32 +76,10 @@ export function SignupPage() {
   // Termos
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsScrolled, setTermsScrolled] = useState(false);
-  // Convite
-  const [referralCode, setReferralCode] = useState('');
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const ref = searchParams.get('ref');
-    if (ref) setReferralCode(ref.trim().toLowerCase());
-  }, [searchParams]);
-
-  const settingsQ = useQuery({
-    queryKey: ['public-settings'],
-    queryFn: () => api.publicSettings(),
-    staleTime: 5 * 60_000,
-  });
-  const referralQ = useQuery({
-    queryKey: ['public-referral', referralCode],
-    queryFn: () => api.publicReferral(referralCode),
-    enabled: !!referralCode && referralCode.length >= 4,
-    staleTime: 5 * 60_000,
-  });
-  const sponsor = referralQ.data?.sponsor ?? null;
-  const discount = settingsQ.data?.referral_discount_pct ?? 10;
-  // Programa de afiliados pausado → some o convite/indicação (foco na Copa).
-  const affiliatesEnabled = settingsQ.data?.affiliate_program_enabled ?? false;
 
   const isBR = country === 'BR';
   // CPF só é validado para o Brasil; outros países informam documento livre.
@@ -169,7 +145,6 @@ export function SignupPage() {
         birth_date: birthDate,
         platforms,
         terms_accepted: true,
-        referralCode: referralCode || undefined,
         gclid: attribution?.gclid,
         utm_source: attribution?.utm_source,
         utm_medium: attribution?.utm_medium,
@@ -213,20 +188,6 @@ export function SignupPage() {
               ou preencha seus dados
               <span style={{ flex: 1, borderTop: '1px solid var(--line)' }} />
             </div>
-          </div>
-        )}
-
-        {affiliatesEnabled && referralCode && sponsor && (
-          <div
-            style={{
-              marginBottom: 16, padding: '12px 14px', borderRadius: 8,
-              background: 'var(--edge-soft)',
-              border: '1px solid oklch(0.88 0.17 125 / 0.4)',
-              fontSize: 13, color: 'var(--edge)', lineHeight: 1.5,
-            }}
-          >
-            🎁 Convite de <strong>{sponsor.display}</strong>. Você ganha{' '}
-            <strong>{discount}% off</strong> na primeira cobrança quando assinar Pro ou Founders.
           </div>
         )}
 

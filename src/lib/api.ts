@@ -805,6 +805,16 @@ export interface WCAnalysis {
   narrative: string;
 }
 
+/** Vitrine pública da landing: jogo encerrado do Brasil com a melhor previsão. */
+export interface WCShowcase {
+  has_data: boolean;
+  match?: WCMatch;
+  probs?: { home: number; draw: number; away: number };
+  likely_score?: string;
+  expected_goals?: { home: number; away: number };
+  hit?: { outcome: boolean; exact_score: boolean; p_outcome: number };
+}
+
 export interface WCCountry {
   id: number;
   name: string;
@@ -1035,6 +1045,7 @@ export const api = {
   worldCupMatches: () => get<WCMatches>('/api/world-cup/matches'),
   worldCupAnalysis: (id: number) => get<WCAnalysis>(`/api/world-cup/matches/${id}`),
   worldCupCountries: () => get<WCCountries>('/api/world-cup/countries'),
+  worldCupShowcase: () => get<WCShowcase>('/api/world-cup/destaque-brasil'),
 
   // moeda do usuário
   getMyCurrency: () => get<{ currency: string | null; detected: string }>('/api/me/currency'),

@@ -39,7 +39,7 @@ export function GoogleOnboardingPage() {
       });
       setToken(r.token);
       await refresh();
-      navigate('/predictions', { replace: true });
+      navigate('/copa-2026', { replace: true });
     } catch (err) {
       setError((err as Error).message || 'Falha ao concluir o cadastro');
     } finally {

@@ -54,7 +54,7 @@ export function SignupPage() {
       }
       setToken(r.token);
       await refresh();
-      navigate('/predictions', { replace: true });
+      navigate('/copa-2026', { replace: true });
     } catch {
       /* erros mostrados no fluxo de login; aqui mantém o cadastro normal */
     }

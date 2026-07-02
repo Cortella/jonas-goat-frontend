@@ -11,7 +11,8 @@ import {
 } from '../components/atoms';
 import { Seo } from '../components/Seo';
 import { useAuth } from '../lib/auth';
-import { api, type ReviewsResponse } from '../lib/api';
+import { api, type ReviewsResponse, type WCShowcase } from '../lib/api';
+import { TeamLogo } from '../components/WorldCupKnockout';
 import { LanguageSelector } from '../components/LanguageSelector';
 import type { Prediction } from '../lib/types';
 
@@ -183,7 +184,7 @@ export function LandingPage() {
         <div style={{ flex: 1 }} />
         <LanguageSelector />
         {user ? (
-          <Link to="/predictions" className="btn btn-edge btn-sm" style={{ textDecoration: 'none', marginLeft: 4 }}>
+          <Link to="/copa-2026" className="btn btn-edge btn-sm" style={{ textDecoration: 'none', marginLeft: 4 }}>
             {t('nav.dashboard', 'Acessar painel')}
           </Link>
         ) : (
@@ -289,6 +290,9 @@ export function LandingPage() {
           <LivePreviewCard preds={live} loading={predsQ.isLoading} signupHref={signupHref} />
         </div>
       </section>
+
+      {/* ─── Copa 2026 · mata-mata (coração do produto) ───────────── */}
+      <CupKnockoutSection />
 
       {/* ─── Como funciona (3 passos) ──────────────────────────────── */}
       <section id="como-funciona" className="landing-section" style={{ borderTop: '1px solid var(--line)' }}>
@@ -427,15 +431,12 @@ export function LandingPage() {
         <h2 style={{ fontSize: 32, fontWeight: 500, margin: 0, letterSpacing: '-0.02em' }}>
           {t('landing.faq_title_1')}
         </h2>
-        <p style={{ fontSize: 14, color: 'var(--text-2)', marginTop: 12 }}>
-          {t('landing.plan_free_tagline')}
-        </p>
         <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link to={signupHref} className="btn btn-edge" style={{ textDecoration: 'none' }}>
             {t('landing.cta_signup')}
           </Link>
-          <Link to="/predictions" className="btn btn-ghost" style={{ textDecoration: 'none' }}>
-            {t('predictions.eyebrow')}
+          <Link to="/copa-2026" className="btn btn-ghost" style={{ textDecoration: 'none' }}>
+            {t('landing.cup_cta_secondary', 'Ver o mata-mata da Copa')}
           </Link>
         </div>
       </section>
@@ -483,6 +484,225 @@ function ReviewsProof({ data }: Readonly<{ data?: ReviewsResponse }>) {
   );
 }
 
+
+// Coração do produto: chamada para o mata-mata da Copa + prova concreta do
+// modelo — um jogo do Brasil já encerrado em que a previsão bateu com o campo
+// (vem do endpoint público /api/world-cup/destaque-brasil).
+function CupKnockoutSection() {
+  const { t } = useTranslation();
+  const q = useQuery({
+    queryKey: ['wc-showcase'],
+    queryFn: () => api.worldCupShowcase(),
+    staleTime: 5 * 60_000,
+    retry: 1,
+  });
+
+  const bullets = [
+    t('landing.cup_b1', 'Chaveamento ao vivo, dos 16 avos de final à decisão'),
+    t('landing.cup_b2', 'Probabilidades, placar provável e mercados em cada confronto'),
+    t('landing.cup_b3', 'Guia completo de todas as seleções classificadas'),
+  ];
+
+  return (
+    <section className="landing-section" style={{ borderTop: '1px solid var(--line)', position: 'relative' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) 460px',
+          gap: 64,
+          alignItems: 'center',
+        }}
+      >
+        <div>
+          <div className="t-eyebrow" style={{ color: 'var(--edge)', marginBottom: 16 }}>
+            🏆 {t('landing.cup_eyebrow', 'Copa do Mundo 2026')}
+          </div>
+          <h2 style={{ fontSize: 40, fontWeight: 400, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.12 }}>
+            {t('landing.cup_title_1', 'O mata-mata começou.')}
+            <br />
+            <span className="t-serif t-italic" style={{ color: 'var(--edge)' }}>
+              {t('landing.cup_title_2', 'O modelo está em campo.')}
+            </span>
+          </h2>
+          <p style={{ fontSize: 15, color: 'var(--text-2)', lineHeight: 1.6, maxWidth: 520, marginTop: 18 }}>
+            {t(
+              'landing.cup_body',
+              'Acompanhe o chaveamento completo da fase eliminatória, confronto a confronto, com a análise estatística do modelo em cada jogo: probabilidades, placar provável e mercados.',
+            )}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
+            {bullets.map((b) => (
+              <div key={b} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--text-2)' }}>
+                <Dot style={{ background: 'var(--edge)' }} />
+                {b}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 12, marginTop: 28, flexWrap: 'wrap' }}>
+            <Link to="/copa-2026" className="btn btn-edge" style={{ textDecoration: 'none' }}>
+              {t('landing.cup_cta', 'Ver o chaveamento completo')}
+            </Link>
+            <Link to="/metodologia" className="btn btn-ghost" style={{ textDecoration: 'none' }}>
+              {t('landing.cup_cta_method', 'Como o modelo funciona')}
+            </Link>
+          </div>
+        </div>
+
+        <BrazilProofCard data={q.data} loading={q.isLoading} />
+      </div>
+    </section>
+  );
+}
+
+/** Prova concreta: jogo encerrado do Brasil em que a previsão do modelo bateu.
+ *  Sem dado disponível (API fora / Brasil sem jogo encerrado), cai para uma
+ *  arte de chaveamento — a seção nunca aparece quebrada. */
+function BrazilProofCard({ data, loading }: Readonly<{ data?: WCShowcase; loading: boolean }>) {
+  const { t } = useTranslation();
+
+  if (loading) {
+    return <div className="surface" style={{ minHeight: 320, boxShadow: 'var(--shadow-2)' }} />;
+  }
+  const m = data?.match;
+  if (!data?.has_data || !m || !data.probs || !data.hit) return <MiniBracketArt />;
+
+  const { probs, hit } = data;
+  const hg = m.home.goals ?? 0;
+  const ag = m.away.goals ?? 0;
+  const winnerHome = hg > ag;
+  const winnerAway = ag > hg;
+
+  return (
+    <div className="surface" style={{ padding: 0, overflow: 'hidden', boxShadow: 'var(--shadow-2)' }}>
+      <div
+        style={{
+          padding: '13px 18px',
+          borderBottom: '1px solid var(--line)',
+          background: 'var(--bg-2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+        }}
+      >
+        <span className="t-eyebrow">{t('landing.cup_proof_eyebrow', 'Previsão do modelo · jogo encerrado')}</span>
+        {hit.outcome && (
+          <span className="tag tag-win" style={{ flexShrink: 0 }}>✓ {t('landing.cup_proof_hit', 'Bateu')}</span>
+        )}
+      </div>
+
+      <div style={{ padding: 20 }}>
+        {/* Placar */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 12, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <TeamLogo name={m.home.name} logo={m.home.logo} size={40} />
+            <span style={{ fontSize: 13, fontWeight: winnerHome ? 700 : 500, textAlign: 'center' }}>{m.home.name}</span>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 30, fontWeight: 700 }}>
+              {hg} : {ag}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 4 }}>
+              {t('landing.cup_proof_final', 'Placar final')}
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <TeamLogo name={m.away.name} logo={m.away.logo} size={40} />
+            <span style={{ fontSize: 13, fontWeight: winnerAway ? 700 : 500, textAlign: 'center' }}>{m.away.name}</span>
+          </div>
+        </div>
+
+        {/* O que o modelo apontava */}
+        <div className="t-eyebrow" style={{ margin: '20px 0 8px' }}>
+          {t('landing.cup_proof_probs', 'Probabilidades do modelo')}
+        </div>
+        <ProbBar home={probs.home} draw={probs.draw} away={probs.away} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontFamily: 'var(--mono)', marginTop: 6, color: 'var(--text-2)' }}>
+          <span style={winnerHome ? { color: 'var(--edge)', fontWeight: 600 } : undefined}>{probs.home}%</span>
+          <span>{t('landing.cup_proof_draw', 'Empate')} {probs.draw}%</span>
+          <span style={winnerAway ? { color: 'var(--edge)', fontWeight: 600 } : undefined}>{probs.away}%</span>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
+          {hit.outcome && (
+            <span className="tag tag-edge">
+              ✓ {t('landing.cup_proof_outcome', 'Resultado previsto')} · {hit.p_outcome}%
+            </span>
+          )}
+          {data.likely_score && (
+            <span className={hit.exact_score ? 'tag tag-edge' : 'tag'}>
+              {hit.exact_score ? '✓ ' : ''}
+              {t('landing.cup_proof_score', 'Placar provável')}: {data.likely_score.replace('-', ' : ')}
+            </span>
+          )}
+        </div>
+
+        <p style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5, margin: '16px 0 0' }}>
+          {t(
+            'landing.cup_proof_note',
+            'Análise do modelo estatístico sobre o desempenho real das seleções no torneio. Não é recomendação de aposta.',
+          )}
+        </p>
+        <Link to="/copa-2026" style={{ display: 'inline-block', marginTop: 12, fontSize: 13, color: 'var(--edge)' }}>
+          {t('landing.cup_proof_cta', 'Ver a análise de todos os jogos →')}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/** Arte de chaveamento usada quando ainda não há jogo do Brasil encerrado. */
+function MiniBracketArt() {
+  const card = (label: string): CSSProperties => ({
+    width: 132,
+    padding: '10px 12px',
+    borderRadius: 8,
+    border: '1px solid var(--line-2)',
+    background: 'var(--surface)',
+    fontSize: 11,
+    color: label === '?' ? 'var(--muted)' : 'var(--text-2)',
+    fontFamily: 'var(--mono)',
+    textAlign: 'center' as const,
+  });
+  return (
+    <div
+      className="surface"
+      style={{
+        boxShadow: 'var(--shadow-2)',
+        padding: '36px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 22,
+        minHeight: 320,
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
+        <div style={card('Oitavas')}>Oitavas</div>
+        <div style={card('Oitavas')}>Oitavas</div>
+      </div>
+      <div style={{ width: 20, alignSelf: 'stretch', borderRight: '1px solid var(--line-2)', margin: '28px 0' }} />
+      <div style={card('Quartas')}>Quartas</div>
+      <div style={{ width: 20, borderTop: '1px solid var(--line-2)' }} />
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 999,
+          background: 'var(--edge-soft)',
+          border: '1px solid var(--edge)',
+          display: 'grid',
+          placeItems: 'center',
+          fontSize: 24,
+          flexShrink: 0,
+        }}
+        aria-hidden
+      >
+        🏆
+      </div>
+    </div>
+  );
+}
 
 function LivePreviewCard({
   preds,

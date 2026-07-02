@@ -12,7 +12,6 @@ import { LanguageSelector } from './LanguageSelector';
 interface NavItem { to: string; labelKey?: string; label?: string; emphasis?: 'cup'; auth?: boolean }
 const ITEMS: NavItem[] = [
   { to: '/copa-2026', labelKey: 'nav.cup', emphasis: 'cup' },
-  { to: '/predictions', labelKey: 'nav.predictions' },
   { to: '/bankroll', label: 'Carteira', auth: true },
   { to: '/founders', label: 'Founders' },
 ];

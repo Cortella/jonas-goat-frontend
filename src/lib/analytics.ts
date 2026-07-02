@@ -1,19 +1,19 @@
 // Camada única de rastreamento (Google Analytics 4 + Google Ads).
 //
-// Tudo é guardado por variável de ambiente: enquanto VITE_GA4_ID / VITE_GADS_ID
-// não estiverem definidos no .env, nada é carregado e todas as funções viram
-// no-op — o app roda igual, sem tags. Quando você criar as contas, basta
-// preencher o .env e o rastreamento liga sozinho (sem mudar código).
+// O Google Ads (conta + label da conversão de compra) tem padrão hardcoded —
+// são identificadores públicos e a conversão precisa funcionar em produção
+// sem depender de env na Vercel. As variáveis abaixo sobrescrevem os padrões:
 //
 //   VITE_GA4_ID              → ID do GA4, formato G-XXXXXXX
 //   VITE_GADS_ID             → ID do Google Ads, formato AW-XXXXXXXXX
-//   VITE_GADS_PURCHASE_LABEL → label da conversão de compra (vem do Google Ads
-//                              ao criar a "ação de conversão"). Sem ele, a
-//                              conversão do Ads não dispara (GA4 ainda registra).
+//   VITE_GADS_PURCHASE_LABEL → label da ação de conversão "Compra" do Ads
 
 const GA4_ID = import.meta.env.VITE_GA4_ID as string | undefined;
-const GADS_ID = import.meta.env.VITE_GADS_ID as string | undefined;
-const GADS_PURCHASE_LABEL = import.meta.env.VITE_GADS_PURCHASE_LABEL as string | undefined;
+// Conta do Google Ads e label da ação de conversão "Compra" (públicos por
+// natureza — vão no HTML de qualquer site). O env sobrescreve se precisar.
+const GADS_ID = (import.meta.env.VITE_GADS_ID as string | undefined) || 'AW-18274300909';
+const GADS_PURCHASE_LABEL =
+  (import.meta.env.VITE_GADS_PURCHASE_LABEL as string | undefined) || 'SSmjCKOG-cUcEO3n7olE';
 
 type GtagParams = Record<string, unknown>;
 
@@ -54,7 +54,7 @@ export function initAnalytics(): void {
 
   // Carrega o script com o primeiro ID disponível (um só script serve ambas
   // as contas configuradas acima).
-  const bootId = GA4_ID || GADS_ID!;
+  const bootId = GA4_ID || GADS_ID;
   const s = document.createElement('script');
   s.async = true;
   s.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(bootId)}`;

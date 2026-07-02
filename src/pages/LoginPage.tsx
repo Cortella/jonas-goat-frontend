@@ -22,7 +22,7 @@ export function LoginPage() {
   const { login, refresh } = useAuth();
   const navigate = useNavigate();
   const location = useLocation() as { state: { from?: string } | null };
-  const redirectTo = location.state?.from || '/predictions';
+  const redirectTo = location.state?.from || '/copa-2026';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

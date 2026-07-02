@@ -52,7 +52,7 @@ export function OnboardingPage() {
         bankroll_initial: bankroll,
         onboarded: true,
       });
-      navigate('/predictions', { replace: true });
+      navigate('/copa-2026', { replace: true });
     } catch (e) {
       setError((e as Error).message || 'Falha ao salvar preferências');
     } finally {
@@ -121,7 +121,7 @@ export function OnboardingPage() {
 
         <div style={{ flex: 1 }} />
         <button
-          onClick={() => navigate('/predictions')}
+          onClick={() => navigate('/copa-2026')}
           className="btn btn-ghost btn-sm"
           style={{ alignSelf: 'flex-start' }}
         >

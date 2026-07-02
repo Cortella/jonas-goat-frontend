@@ -273,6 +273,10 @@ hr.hl { border: 0; border-top: 1px solid var(--line); margin: 0; }
   box-shadow: 0 0 0 1px oklch(0.88 0.17 125 / 0.18), 0 0 24px oklch(0.88 0.17 125 / 0.10);
 }
 .kb-card--final:hover { border-color: oklch(0.88 0.17 125 / 0.75); }
+/* Confronto ainda não definido: card inerte, borda tracejada */
+.kb-card--ghost { border-style: dashed; cursor: default; background: transparent; box-shadow: none; }
+.kb-card--ghost:hover { transform: none; box-shadow: none; border-color: var(--line); }
+.kb-card--ghost.kb-card--final { border-color: oklch(0.88 0.17 125 / 0.35); }
 .kb-meta {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 9px 12px 5px; font: 500 10px/1.2 var(--mono);

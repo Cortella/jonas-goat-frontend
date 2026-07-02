@@ -82,28 +82,106 @@ function orderFeeders(cur: WCMatch[], next: WCMatch[]): WCMatch[] {
   return out;
 }
 
+/** Estrutura fixa da árvore da Copa 2026 (fora a disputa de 3º lugar). */
+const EXPECTED_SIZE: Record<number, number> = { 0: 16, 1: 8, 2: 4, 3: 2, 5: 1 };
+const ORDER_LABEL: Record<number, string> = {
+  0: '16 avos de final',
+  1: 'Oitavas de final',
+  2: 'Quartas de final',
+  3: 'Semifinais',
+  5: 'Final',
+};
+
+/** Confronto ainda sem fixture na API — vira um card "A definir" na árvore. */
+function placeholderMatch(order: number, i: number): WCMatch {
+  return {
+    id: -(order * 100 + i + 1),
+    date: '',
+    timestamp: 0,
+    round: '',
+    group: null,
+    status: { short: 'TBD', long: 'A definir', elapsed: null, phase: 'upcoming' },
+    home: { id: 0, name: '', logo: '', goals: null },
+    away: { id: 0, name: '', logo: '', goals: null },
+    penalties: null,
+    venue: { name: null, city: null },
+  };
+}
+
+type WinnerSide = 'home' | 'away';
+
+/** Quem avançou em cada jogo encerrado: pelo placar; empate → pênaltis; sem
+ *  placar de pênaltis (jogos antigos) → inferido pela presença da seleção na
+ *  fase seguinte. */
+function computeWinners(tree: BracketRoundData[], thirdPlace: WCMatch | null): Map<number, WinnerSide> {
+  const winners = new Map<number, WinnerSide>();
+  const decide = (m: WCMatch): WinnerSide | null => {
+    if (m.id <= 0 || m.status.phase !== 'finished') return null;
+    const hg = m.home.goals;
+    const ag = m.away.goals;
+    if (hg != null && ag != null && hg !== ag) return hg > ag ? 'home' : 'away';
+    const p = m.penalties;
+    if (p && p.home !== p.away) return p.home > p.away ? 'home' : 'away';
+    return null;
+  };
+  tree.forEach((r, i) => {
+    const next = tree[i + 1];
+    const nextIds = next
+      ? new Set(next.matches.flatMap((n) => [n.home.id, n.away.id]).filter((id) => id > 0))
+      : null;
+    for (const m of r.matches) {
+      let w = decide(m);
+      if (!w && nextIds && m.id > 0 && m.status.phase === 'finished') {
+        if (nextIds.has(m.home.id) && !nextIds.has(m.away.id)) w = 'home';
+        else if (nextIds.has(m.away.id) && !nextIds.has(m.home.id)) w = 'away';
+      }
+      if (w) winners.set(m.id, w);
+    }
+  });
+  if (thirdPlace) {
+    const w = decide(thirdPlace);
+    if (w) winners.set(thirdPlace.id, w);
+  }
+  return winners;
+}
+
 function buildBracket(rounds: WCKnockoutRound[]): {
   tree: BracketRoundData[];
   thirdPlace: WCMatch | null;
+  winners: Map<number, WinnerSide>;
 } {
   let thirdPlace: WCMatch | null = null;
-  const tree: BracketRoundData[] = [];
+  const real = new Map<number, WCMatch[]>();
 
   for (const r of rounds) {
     const def = defFor(r.round);
     const matches = [...r.matches].sort((a, b) => a.timestamp - b.timestamp);
     if (def.aside) {
-      thirdPlace = matches[0] ?? null;
+      thirdPlace = matches[0] ?? thirdPlace;
       continue;
     }
-    tree.push({ key: r.round, label: def.label, order: def.order, matches });
+    if (!(def.order in EXPECTED_SIZE)) continue; // rodada fora da árvore padrão
+    real.set(def.order, [...(real.get(def.order) ?? []), ...matches]);
   }
+  if (real.size === 0) return { tree: [], thirdPlace, winners: new Map() };
 
-  tree.sort((a, b) => a.order - b.order);
+  // Árvore SEMPRE completa até a final (estilo FIFA): fases que a API ainda
+  // não criou entram como cards "A definir", nas quantidades oficiais.
+  const minOrder = Math.min(...real.keys());
+  const tree: BracketRoundData[] = [];
+  for (const order of [0, 1, 2, 3, 5]) {
+    if (order < minOrder) continue;
+    const size = EXPECTED_SIZE[order];
+    const matches = (real.get(order) ?? []).slice(0, size);
+    while (matches.length < size) matches.push(placeholderMatch(order, matches.length));
+    tree.push({ key: ORDER_LABEL[order], label: ORDER_LABEL[order], order, matches });
+  }
+  thirdPlace ??= placeholderMatch(4, 0);
+
   for (let i = tree.length - 2; i >= 0; i--) {
     tree[i].matches = orderFeeders(tree[i].matches, tree[i + 1].matches);
   }
-  return { tree, thirdPlace };
+  return { tree, thirdPlace, winners: computeWinners(tree, thirdPlace) };
 }
 
 // ─── Componentes ────────────────────────────────────────────────────────────
@@ -144,7 +222,7 @@ export function KnockoutBracket({
   rounds,
   onOpen,
 }: Readonly<{ rounds: WCKnockoutRound[]; onOpen: (id: number) => void }>) {
-  const { tree, thirdPlace } = useMemo(() => buildBracket(rounds), [rounds]);
+  const { tree, thirdPlace, winners } = useMemo(() => buildBracket(rounds), [rounds]);
   const { left, right, final } = useMemo(() => splitSides(tree), [tree]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -172,11 +250,11 @@ export function KnockoutBracket({
     <div className="kb-scroll" ref={scrollRef}>
       <div className="kb">
         {left.map((c) => (
-          <BracketSideColumn key={c.key} col={c} onOpen={onOpen} />
+          <BracketSideColumn key={c.key} col={c} winners={winners} onOpen={onOpen} />
         ))}
-        <FinalColumn data={final} thirdPlace={thirdPlace} hasSides={hasSides} onOpen={onOpen} />
+        <FinalColumn data={final} thirdPlace={thirdPlace} hasSides={hasSides} winners={winners} onOpen={onOpen} />
         {right.map((c) => (
-          <BracketSideColumn key={c.key} col={c} onOpen={onOpen} />
+          <BracketSideColumn key={c.key} col={c} winners={winners} onOpen={onOpen} />
         ))}
       </div>
     </div>
@@ -185,8 +263,9 @@ export function KnockoutBracket({
 
 function BracketSideColumn({
   col,
+  winners,
   onOpen,
-}: Readonly<{ col: BracketColumn; onOpen: (id: number) => void }>) {
+}: Readonly<{ col: BracketColumn; winners: Map<number, WinnerSide>; onOpen: (id: number) => void }>) {
   const pairs: WCMatch[][] = [];
   for (let i = 0; i < col.matches.length; i += 2) pairs.push(col.matches.slice(i, i + 2));
 
@@ -204,7 +283,7 @@ function BracketSideColumn({
           >
             {pair.map((m) => (
               <div key={m.id} className={`kb-slot kb-slot--out${col.hasPrev ? ' kb-slot--in' : ''}`}>
-                <BracketCard match={m} onOpen={onOpen} />
+                <BracketCard match={m} winner={winners.get(m.id) ?? null} onOpen={onOpen} />
               </div>
             ))}
           </div>
@@ -218,11 +297,13 @@ function FinalColumn({
   data,
   thirdPlace,
   hasSides,
+  winners,
   onOpen,
 }: Readonly<{
   data: BracketRoundData;
   thirdPlace: WCMatch | null;
   hasSides: boolean;
+  winners: Map<number, WinnerSide>;
   onOpen: (id: number) => void;
 }>) {
   const final = data.matches[0] ?? null;
@@ -236,7 +317,9 @@ function FinalColumn({
       <div className="kb-col">
         <div className="kb-pair">
           <div className={`kb-slot${hasSides ? ' kb-slot--in kb-slot--in-r' : ''}`}>
-            {final && <BracketCard match={final} isFinal onOpen={onOpen} />}
+            {final && (
+              <BracketCard match={final} winner={winners.get(final.id) ?? null} isFinal onOpen={onOpen} />
+            )}
             {/* Absoluto para não deslocar a final do centro do slot — os
                 conectores das semis apontam para o meio exato do card. */}
             {thirdPlace && (
@@ -244,7 +327,7 @@ function FinalColumn({
                 <div className="t-eyebrow" style={{ marginBottom: 8, textAlign: 'center' }}>
                   Disputa do 3º lugar
                 </div>
-                <BracketCard match={thirdPlace} onOpen={onOpen} />
+                <BracketCard match={thirdPlace} winner={winners.get(thirdPlace.id) ?? null} onOpen={onOpen} />
               </div>
             )}
           </div>
@@ -255,8 +338,10 @@ function FinalColumn({
 }
 
 function roundSub(matches: WCMatch[]): string {
+  const real = matches.filter((m) => m.id > 0);
+  if (real.length === 0) return 'A definir';
   const n = matches.length;
-  const dates = matches.map((m) => m.date).filter(Boolean).sort();
+  const dates = real.map((m) => m.date).filter(Boolean).sort();
   const games = `${n} ${n === 1 ? 'jogo' : 'jogos'}`;
   if (dates.length === 0) return games;
   const first = formatDay(dates[0]);
@@ -266,21 +351,34 @@ function roundSub(matches: WCMatch[]): string {
 
 function BracketCard({
   match,
+  winner: winnerProp,
   isFinal,
   onOpen,
-}: Readonly<{ match: WCMatch; isFinal?: boolean; onOpen: (id: number) => void }>) {
+}: Readonly<{
+  match: WCMatch;
+  winner?: WinnerSide | null;
+  isFinal?: boolean;
+  onOpen: (id: number) => void;
+}>) {
+  const ghost = match.id <= 0; // confronto ainda não definido (placeholder)
   const live = match.status.phase === 'live';
   const finished = match.status.phase === 'finished';
-  const winner = winnerSide(match);
+  const winner = winnerProp ?? winnerSide(match);
   const extra =
     match.status.short === 'PEN' ? 'Pênaltis' : match.status.short === 'AET' ? 'Prorrogação' : null;
 
   let cls = 'kb-card';
   if (live) cls += ' kb-card--live';
   if (isFinal) cls += ' kb-card--final';
+  if (ghost) cls += ' kb-card--ghost';
 
   return (
-    <button type="button" className={cls} onClick={() => onOpen(match.id)}>
+    <button
+      type="button"
+      className={cls}
+      disabled={ghost}
+      onClick={ghost ? undefined : () => onOpen(match.id)}
+    >
       <div className="kb-meta">
         {live ? (
           <span style={{ color: 'var(--loss)', fontWeight: 600 }}>
@@ -295,14 +393,30 @@ function BracketCard({
           <span className="kb-meta-city">{match.venue.city}</span>
         )}
       </div>
-      <TeamLine team={match.home} winner={winner === 'home'} loser={winner === 'away'} live={live} big={isFinal} />
-      <TeamLine team={match.away} winner={winner === 'away'} loser={winner === 'home'} live={live} big={isFinal} last />
+      <TeamLine
+        team={match.home}
+        pen={match.penalties?.home ?? null}
+        winner={winner === 'home'}
+        loser={winner === 'away'}
+        live={live}
+        big={isFinal}
+      />
+      <TeamLine
+        team={match.away}
+        pen={match.penalties?.away ?? null}
+        winner={winner === 'away'}
+        loser={winner === 'home'}
+        live={live}
+        big={isFinal}
+        last
+      />
     </button>
   );
 }
 
 function TeamLine({
   team,
+  pen,
   winner,
   loser,
   live,
@@ -310,6 +424,7 @@ function TeamLine({
   last,
 }: Readonly<{
   team: WCMatch['home'];
+  pen: number | null;
   winner: boolean;
   loser: boolean;
   live: boolean;
@@ -367,6 +482,12 @@ function TeamLine({
           textAlign: 'right',
         }}
       >
+        {/* Decisão nos pênaltis: "(3) 1", como a FIFA exibe */}
+        {pen != null && (
+          <span style={{ fontSize: big ? 12 : 10.5, color: 'var(--muted)', fontWeight: 500, marginRight: 4 }}>
+            ({pen})
+          </span>
+        )}
         {team.goals ?? (tbd ? '' : '–')}
       </span>
     </div>
@@ -413,6 +534,7 @@ export function TeamLogo({ name, logo, size = 22 }: Readonly<{ name: string; log
 }
 
 export function formatKickoff(iso: string): string {
+  if (!iso) return 'A definir';
   try {
     return new Date(iso).toLocaleString('pt-BR', {
       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',

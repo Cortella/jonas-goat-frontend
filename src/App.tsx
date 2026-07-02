@@ -8,7 +8,6 @@ import { AdminRoute, AuthProvider, ProtectedRoute } from './lib/auth';
 import { EmailConfirmBanner } from './components/EmailConfirmBanner';
 import { SupportBubble } from './components/SupportChat';
 import { SubscribeOffer } from './components/SubscribeOffer';
-import { SubscriberTour } from './components/SubscriberTour';
 
 // LandingPage fica eager: é o destino principal dos anúncios (o LCP da
 // campanha) e não deve piscar um fallback de carregamento na primeira pintura.
@@ -339,7 +338,6 @@ export function App() {
       </Suspense>
       <SupportBubble />
       <SubscribeOffer />
-      <SubscriberTour />
     </AuthProvider>
   );
 }

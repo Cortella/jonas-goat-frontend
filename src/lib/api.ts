@@ -742,6 +742,8 @@ export interface WCMatch {
   status: { short: string; long: string; elapsed: number | null; phase: WCPhase };
   home: WCMatchTeam;
   away: WCMatchTeam;
+  /** Placar da disputa de pênaltis (status PEN); null quando não houve. */
+  penalties?: { home: number; away: number } | null;
   venue: { name: string | null; city: string | null };
 }
 export interface WCGroup {

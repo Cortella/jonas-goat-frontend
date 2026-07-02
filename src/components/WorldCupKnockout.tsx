@@ -1,16 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { WCKnockoutRound, WCMatch } from '../lib/api';
 
 /**
- * Chaveamento do mata-mata da Copa (bracket) no padrão dos apps de placar:
- * colunas por fase ligadas por conectores, card por confronto com escudos,
- * placar (ao vivo em destaque), vencedor em negrito e perdedor esmaecido.
- * Clicar em um card abre o modal de análise do jogo (mesmo fluxo dos grupos).
+ * Chaveamento do mata-mata da Copa no formato clássico da FIFA: os dois lados
+ * da chave convergem para a FINAL no centro — metade esquerda flui → e a
+ * metade direita flui ← (conectores espelhados). Card por confronto com
+ * escudos, placar (ao vivo em destaque), vencedor em negrito e perdedor
+ * esmaecido. Clicar em um card abre o modal de análise do jogo.
  *
  * A API devolve os jogos agrupados por rodada (`round` cru da API-Football);
  * aqui normalizamos rótulo/ordem das fases e reordenamos cada rodada para que
  * os dois confrontos que alimentam um jogo da fase seguinte fiquem adjacentes
- * (senão as linhas do chaveamento ligariam confrontos errados).
+ * (senão as linhas do chaveamento ligariam confrontos errados). A divisão em
+ * lados sai dessa mesma ordenação: primeira metade de cada rodada → lado
+ * esquerdo, segunda metade → lado direito.
  */
 
 // ─── Fases ──────────────────────────────────────────────────────────────────
@@ -105,13 +108,53 @@ function buildBracket(rounds: WCKnockoutRound[]): {
 
 // ─── Componentes ────────────────────────────────────────────────────────────
 
+interface BracketColumn {
+  key: string;
+  label: string;
+  matches: WCMatch[];
+  dir: 'ltr' | 'rtl';
+  /** recebe conector vindo da rodada anterior (lado de fora da chave) */
+  hasPrev: boolean;
+}
+
+/** Divide cada rodada (já ordenada pelos alimentadores) em lado esquerdo e
+ *  direito da chave, no formato FIFA: a final fica no centro e as metades
+ *  convergem para ela. */
+function splitSides(tree: BracketRoundData[]): {
+  left: BracketColumn[];
+  right: BracketColumn[];
+  final: BracketRoundData | null;
+} {
+  if (tree.length === 0) return { left: [], right: [], final: null };
+  const final = tree[tree.length - 1];
+  const side = tree.slice(0, -1);
+  const left: BracketColumn[] = [];
+  const right: BracketColumn[] = [];
+  side.forEach((r, i) => {
+    const half = Math.ceil(r.matches.length / 2);
+    const l = r.matches.slice(0, half);
+    const rr = r.matches.slice(half);
+    if (l.length > 0) left.push({ key: `${r.key}-L`, label: r.label, matches: l, dir: 'ltr', hasPrev: i > 0 });
+    if (rr.length > 0) right.unshift({ key: `${r.key}-R`, label: r.label, matches: rr, dir: 'rtl', hasPrev: i > 0 });
+  });
+  return { left, right, final };
+}
+
 export function KnockoutBracket({
   rounds,
   onOpen,
 }: Readonly<{ rounds: WCKnockoutRound[]; onOpen: (id: number) => void }>) {
   const { tree, thirdPlace } = useMemo(() => buildBracket(rounds), [rounds]);
+  const { left, right, final } = useMemo(() => splitSides(tree), [tree]);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  if (tree.length === 0) {
+  // Abre com a FINAL centralizada (a chave inteira não cabe na viewport).
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
+  }, [left.length, right.length]);
+
+  if (tree.length === 0 || !final) {
     return (
       <div className="surface" style={{ padding: 56, textAlign: 'center' }}>
         <p style={{ fontSize: 36, margin: 0, opacity: 0.4 }} aria-hidden>🏆</p>
@@ -123,76 +166,89 @@ export function KnockoutBracket({
     );
   }
 
+  const hasSides = left.length > 0 || right.length > 0;
+
   return (
-    <div className="kb-scroll">
+    <div className="kb-scroll" ref={scrollRef}>
       <div className="kb">
-        {tree.map((r, i) => (
-          <BracketRound
-            key={r.key}
-            data={r}
-            hasPrev={i > 0}
-            hasNext={i < tree.length - 1}
-            isFinal={r.order === 5}
-            thirdPlace={r.order === 5 ? thirdPlace : null}
-            onOpen={onOpen}
-          />
+        {left.map((c) => (
+          <BracketSideColumn key={c.key} col={c} onOpen={onOpen} />
+        ))}
+        <FinalColumn data={final} thirdPlace={thirdPlace} hasSides={hasSides} onOpen={onOpen} />
+        {right.map((c) => (
+          <BracketSideColumn key={c.key} col={c} onOpen={onOpen} />
         ))}
       </div>
     </div>
   );
 }
 
-function BracketRound({
-  data,
-  hasPrev,
-  hasNext,
-  isFinal,
-  thirdPlace,
+function BracketSideColumn({
+  col,
   onOpen,
-}: Readonly<{
-  data: BracketRoundData;
-  hasPrev: boolean;
-  hasNext: boolean;
-  isFinal: boolean;
-  thirdPlace: WCMatch | null;
-  onOpen: (id: number) => void;
-}>) {
+}: Readonly<{ col: BracketColumn; onOpen: (id: number) => void }>) {
   const pairs: WCMatch[][] = [];
-  for (let i = 0; i < data.matches.length; i += 2) pairs.push(data.matches.slice(i, i + 2));
+  for (let i = 0; i < col.matches.length; i += 2) pairs.push(col.matches.slice(i, i + 2));
 
   return (
-    <div className="kb-round">
+    <div className={`kb-round${col.dir === 'rtl' ? ' kb-round--rtl' : ''}`}>
       <div className="kb-round-head">
-        <div style={{ fontSize: 13, fontWeight: 600 }}>
-          {isFinal && <span aria-hidden style={{ marginRight: 6 }}>🏆</span>}
-          {data.label}
-        </div>
-        <div style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--muted)', marginTop: 2 }}>
-          {roundSub(data.matches)}
-        </div>
+        <div className="kb-round-title">{col.label}</div>
+        <div className="kb-round-sub">{roundSub(col.matches)}</div>
       </div>
       <div className="kb-col">
         {pairs.map((pair) => (
           <div
             key={pair[0].id}
-            className={`kb-pair${hasNext && pair.length === 2 ? ' kb-pair--join' : ''}`}
+            className={`kb-pair${pair.length === 2 ? ' kb-pair--join' : ''}`}
           >
             {pair.map((m) => (
-              <div
-                key={m.id}
-                className={`kb-slot${hasNext ? ' kb-slot--out' : ''}${hasPrev ? ' kb-slot--in' : ''}`}
-              >
-                <BracketCard match={m} isFinal={isFinal} onOpen={onOpen} />
-                {isFinal && thirdPlace && (
-                  <div style={{ marginTop: 30 }}>
-                    <div className="t-eyebrow" style={{ marginBottom: 8 }}>Disputa do 3º lugar</div>
-                    <BracketCard match={thirdPlace} onOpen={onOpen} />
-                  </div>
-                )}
+              <div key={m.id} className={`kb-slot kb-slot--out${col.hasPrev ? ' kb-slot--in' : ''}`}>
+                <BracketCard match={m} onOpen={onOpen} />
               </div>
             ))}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function FinalColumn({
+  data,
+  thirdPlace,
+  hasSides,
+  onOpen,
+}: Readonly<{
+  data: BracketRoundData;
+  thirdPlace: WCMatch | null;
+  hasSides: boolean;
+  onOpen: (id: number) => void;
+}>) {
+  const final = data.matches[0] ?? null;
+  return (
+    <div className="kb-round kb-round--final">
+      <div className="kb-round-head">
+        <div className="kb-final-trophy" aria-hidden>🏆</div>
+        <div className="kb-round-title kb-round-title--final">{data.label}</div>
+        <div className="kb-round-sub">{final ? roundSub([final]) : ''}</div>
+      </div>
+      <div className="kb-col">
+        <div className="kb-pair">
+          <div className={`kb-slot${hasSides ? ' kb-slot--in kb-slot--in-r' : ''}`}>
+            {final && <BracketCard match={final} isFinal onOpen={onOpen} />}
+            {/* Absoluto para não deslocar a final do centro do slot — os
+                conectores das semis apontam para o meio exato do card. */}
+            {thirdPlace && (
+              <div style={{ position: 'absolute', top: 'calc(50% + 78px)', left: 0, right: 0 }}>
+                <div className="t-eyebrow" style={{ marginBottom: 8, textAlign: 'center' }}>
+                  Disputa do 3º lugar
+                </div>
+                <BracketCard match={thirdPlace} onOpen={onOpen} />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -239,8 +295,8 @@ function BracketCard({
           <span className="kb-meta-city">{match.venue.city}</span>
         )}
       </div>
-      <TeamLine team={match.home} winner={winner === 'home'} loser={winner === 'away'} live={live} />
-      <TeamLine team={match.away} winner={winner === 'away'} loser={winner === 'home'} live={live} last />
+      <TeamLine team={match.home} winner={winner === 'home'} loser={winner === 'away'} live={live} big={isFinal} />
+      <TeamLine team={match.away} winner={winner === 'away'} loser={winner === 'home'} live={live} big={isFinal} last />
     </button>
   );
 }
@@ -250,8 +306,16 @@ function TeamLine({
   winner,
   loser,
   live,
+  big,
   last,
-}: Readonly<{ team: WCMatch['home']; winner: boolean; loser: boolean; live: boolean; last?: boolean }>) {
+}: Readonly<{
+  team: WCMatch['home'];
+  winner: boolean;
+  loser: boolean;
+  live: boolean;
+  big?: boolean;
+  last?: boolean;
+}>) {
   const tbd = !team.name || team.id <= 0;
   return (
     <div
@@ -259,14 +323,14 @@ function TeamLine({
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        padding: last ? '4px 12px 10px' : '4px 12px',
-        opacity: loser ? 0.5 : 1,
+        padding: last ? `${big ? 6 : 4}px 12px ${big ? 12 : 10}px` : `${big ? 6 : 4}px 12px`,
+        opacity: loser ? 0.45 : 1,
       }}
     >
       {tbd ? (
         <span className="kb-tbd-crest" aria-hidden />
       ) : (
-        <TeamLogo name={team.name} logo={team.logo} size={18} />
+        <TeamLogo name={team.name} logo={team.logo} size={big ? 22 : 18} />
       )}
       <span
         style={{
@@ -275,18 +339,26 @@ function TeamLine({
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
-          fontSize: 12.5,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: big ? 13.5 : 12.5,
           fontWeight: winner ? 650 : 400,
           fontStyle: tbd ? 'italic' : undefined,
           color: tbd ? 'var(--muted)' : undefined,
         }}
       >
-        {tbd ? 'A definir' : team.name}
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {tbd ? 'A definir' : team.name}
+        </span>
+        {winner && (
+          <span aria-label="classificado" style={{ color: 'var(--edge)', fontSize: 10, flexShrink: 0 }}>✓</span>
+        )}
       </span>
       <span
         style={{
           fontFamily: 'var(--mono)',
-          fontSize: 13,
+          fontSize: big ? 15 : 13,
           fontWeight: winner ? 700 : 500,
           fontVariantNumeric: 'tabular-nums',
           color: live ? 'var(--loss)' : team.goals == null ? 'var(--faint)' : undefined,

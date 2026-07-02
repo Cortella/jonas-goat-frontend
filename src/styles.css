@@ -190,51 +190,92 @@ hr.hl { border: 0; border-top: 1px solid var(--line); margin: 0; }
 .wc-group-row:last-child { border-bottom: 0; }
 .wc-group-row:hover { background: var(--surface-2); }
 
-/* ── World Cup knockout bracket (mata-mata) ──────────────────────────────
-   Colunas por fase; conectores desenhados com pseudo-elementos:
+/* ── World Cup knockout bracket (mata-mata, formato FIFA) ────────────────
+   Os dois lados da chave convergem para a FINAL no centro. Conectores com
+   pseudo-elementos:
    - .kb-slot--out::after  → traço horizontal do card até o meio do vão
    - .kb-pair--join::after → traço vertical unindo os dois alimentadores
    - .kb-slot--in::before  → traço horizontal do meio do vão até o card
+   - .kb-round--rtl        → espelha tudo (lado direito flui ←)
+   - .kb-slot--in-r        → stub extra à direita (a final recebe dos 2 lados)
    O alinhamento vertical entre fases sai de graça: cada slot tem flex:1,
    então um slot das oitavas ocupa a altura de dois dos 16 avos, centrado. */
 .kb-scroll { overflow-x: auto; padding-bottom: 20px; }
-.kb { --kb-gap: 36px; display: flex; align-items: stretch; min-width: max-content; padding-top: 4px; }
-.kb-round { display: flex; flex-direction: column; width: 236px; flex-shrink: 0; }
+.kb {
+  --kb-gap: 34px; --kb-line: var(--line-2);
+  display: flex; align-items: stretch; min-width: max-content;
+  padding-top: 4px; margin: 0 auto;
+}
+.kb-round { display: flex; flex-direction: column; width: 224px; flex-shrink: 0; }
 .kb-round + .kb-round { margin-left: var(--kb-gap); }
-.kb-round-head { height: 44px; flex-shrink: 0; }
+/* Altura ÚNICA para todos os cabeçalhos: se divergir entre colunas, o centro
+   vertical de cada coluna muda e os conectores das semis → final desalinham. */
+.kb-round-head { height: 78px; flex-shrink: 0; text-align: center; }
+.kb-round-title {
+  font: 600 11px/1.2 var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-2);
+}
+.kb-round-sub { font: 400 10px/1.4 var(--mono); color: var(--muted); margin-top: 4px; }
 .kb-col { flex: 1; display: flex; flex-direction: column; }
 .kb-pair { flex: 1; display: flex; flex-direction: column; position: relative; }
 .kb-slot { flex: 1; display: flex; flex-direction: column; justify-content: center; position: relative; padding: 7px 0; }
 .kb-slot--out::after {
   content: ''; position: absolute; top: 50%;
   right: calc(var(--kb-gap) / -2); width: calc(var(--kb-gap) / 2);
-  height: 1px; background: var(--line-2);
+  height: 1px; background: var(--kb-line);
 }
 .kb-slot--in::before {
   content: ''; position: absolute; top: 50%;
   left: calc(var(--kb-gap) / -2); width: calc(var(--kb-gap) / 2);
-  height: 1px; background: var(--line-2);
+  height: 1px; background: var(--kb-line);
+}
+.kb-slot--in-r::after {
+  content: ''; position: absolute; top: 50%;
+  right: calc(var(--kb-gap) / -2); width: calc(var(--kb-gap) / 2);
+  height: 1px; background: var(--kb-line);
 }
 .kb-pair--join::after {
   content: ''; position: absolute; top: 25%; height: 50%;
-  right: calc(var(--kb-gap) / -2); width: 1px; background: var(--line-2);
+  right: calc(var(--kb-gap) / -2); width: 1px; background: var(--kb-line);
 }
+/* Lado direito da chave: tudo espelhado (flui da direita para o centro). */
+.kb-round--rtl .kb-slot--out::after { right: auto; left: calc(var(--kb-gap) / -2); }
+.kb-round--rtl .kb-slot--in::before { left: auto; right: calc(var(--kb-gap) / -2); }
+.kb-round--rtl .kb-pair--join::after { right: auto; left: calc(var(--kb-gap) / -2); }
+
+/* Coluna central da FINAL: mais larga, com halo suave atrás da decisão. */
+.kb-round--final { width: 248px; position: relative; }
+.kb-round--final::before {
+  content: ''; position: absolute; inset: -8px -20px;
+  background: radial-gradient(ellipse 300px 340px at 50% 42%, oklch(0.88 0.17 125 / 0.07), transparent 70%);
+  pointer-events: none;
+}
+.kb-final-trophy { font-size: 20px; line-height: 1; margin-bottom: 5px; }
+.kb-round-title--final { color: var(--edge); font-size: 12px; letter-spacing: 0.12em; }
 
 /* Card de confronto */
 .kb-card {
   position: relative; z-index: 1; width: 100%; padding: 0; text-align: left;
-  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-2);
+  background: linear-gradient(180deg, var(--surface), var(--bg-2));
+  border: 1px solid var(--line); border-radius: 10px;
   color: var(--text); cursor: pointer; overflow: hidden;
+  box-shadow: var(--shadow-1);
   transition: border-color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
 }
-.kb-card:hover { border-color: var(--line-2); transform: translateY(-1px); box-shadow: var(--shadow-1); }
-.kb-card--live { border-color: oklch(0.68 0.16 25 / 0.55); }
+.kb-card:hover { border-color: var(--line-2); transform: translateY(-1px); box-shadow: var(--shadow-2); }
+.kb-card--live {
+  border-color: oklch(0.68 0.16 25 / 0.55);
+  box-shadow: 0 0 0 1px oklch(0.68 0.16 25 / 0.18), 0 0 18px oklch(0.68 0.16 25 / 0.12);
+}
 .kb-card--live:hover { border-color: oklch(0.68 0.16 25 / 0.8); }
-.kb-card--final { border-color: oklch(0.88 0.17 125 / 0.45); box-shadow: 0 0 0 1px oklch(0.88 0.17 125 / 0.15); }
-.kb-card--final:hover { border-color: oklch(0.88 0.17 125 / 0.7); }
+.kb-card--final {
+  border-color: oklch(0.88 0.17 125 / 0.5);
+  box-shadow: 0 0 0 1px oklch(0.88 0.17 125 / 0.18), 0 0 24px oklch(0.88 0.17 125 / 0.10);
+}
+.kb-card--final:hover { border-color: oklch(0.88 0.17 125 / 0.75); }
 .kb-meta {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 8px 12px 4px; font: 500 10px/1.2 var(--mono);
+  padding: 9px 12px 5px; font: 500 10px/1.2 var(--mono);
   letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);
 }
 .kb-meta-city { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 45%; text-align: right; }
@@ -244,7 +285,8 @@ hr.hl { border: 0; border-top: 1px solid var(--line); margin: 0; }
 }
 @media (max-width: 640px) {
   .kb { --kb-gap: 26px; }
-  .kb-round { width: 212px; }
+  .kb-round { width: 204px; }
+  .kb-round--final { width: 228px; }
 }
 
 /* Landing — section spacing utilities + hero accent halo */

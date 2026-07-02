@@ -557,6 +557,10 @@ function ModalBody({ a }: Readonly<{ a: WCAnalysis }>) {
         </div>
       </div>
 
+      {/* Vídeo da CazéTV: transmissão ao vivo ou melhores momentos, dentro da
+          plataforma (embed do YouTube — a CazéTV passa todos os jogos grátis). */}
+      <CazeTvSection match={m} />
+
       {/* Estatísticas reais do jogo (encerrado/ao vivo) — públicas, fora do
           paywall: escanteios, finalizações, posse, cartões. */}
       {a.match_stats && (
@@ -728,6 +732,106 @@ function ModalBody({ a }: Readonly<{ a: WCAnalysis }>) {
         </div>
       </div>
     </>
+  );
+}
+
+/** Player da CazéTV embutido: ao vivo (jogo em andamento/por vir) ou melhores
+ *  momentos (encerrado). Clique-para-carregar: mostra a thumbnail e só monta o
+ *  iframe do YouTube quando o usuário dá play (modal continua leve). */
+function CazeTvSection({ match }: Readonly<{ match: WCMatch }>) {
+  const q = useQuery({
+    queryKey: ['wc-video', match.id],
+    queryFn: () => api.worldCupMatchVideo(match.id),
+    staleTime: 5 * 60_000,
+    retry: 1,
+  });
+  const [playing, setPlaying] = useState(false);
+  const v = q.data;
+  if (!v) return null;
+
+  const live = v.kind === 'live';
+  const label = live ? 'Assista ao vivo · CazéTV (grátis)' : 'Melhores momentos · CazéTV';
+
+  if (!v.video_id) {
+    // Sem vídeo localizado: para jogo futuro não mostra nada; encerrado/ao
+    // vivo oferece a busca direta no YouTube como fallback.
+    if (match.status.phase === 'upcoming') return null;
+    return (
+      <a
+        href={v.search_url}
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '12px 22px', borderBottom: '1px solid var(--line)',
+          fontSize: 12, color: 'var(--text-2)', textDecoration: 'none',
+        }}
+      >
+        <span aria-hidden>▶</span> {label} — buscar no YouTube ↗
+      </a>
+    );
+  }
+
+  return (
+    <div style={{ borderBottom: '1px solid var(--line)' }}>
+      <div
+        className="t-eyebrow"
+        style={{ padding: '14px 22px 10px', display: 'flex', alignItems: 'center', gap: 8 }}
+      >
+        <span style={{ color: live ? 'var(--loss)' : undefined }} aria-hidden>▶</span>
+        <span style={{ color: live ? 'var(--loss)' : undefined }}>{label}</span>
+      </div>
+      <div style={{ position: 'relative', aspectRatio: '16 / 9', background: 'oklch(0.1 0 0)' }}>
+        {playing ? (
+          <iframe
+            src={`${v.embed_url}?autoplay=1`}
+            title={v.title ?? 'CazéTV'}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPlaying(true)}
+            aria-label={`Reproduzir: ${v.title ?? label}`}
+            style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              padding: 0, border: 'none', cursor: 'pointer', background: 'transparent',
+            }}
+          >
+            <img
+              src={`https://i.ytimg.com/vi/${v.video_id}/hqdefault.jpg`}
+              alt={v.title ?? label}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: 0.85 }}
+            />
+            <span
+              style={{
+                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                width: 58, height: 42, borderRadius: 12,
+                background: 'oklch(0.55 0.22 25 / 0.92)', color: 'white',
+                display: 'grid', placeItems: 'center', fontSize: 18,
+              }}
+              aria-hidden
+            >
+              ▶
+            </span>
+            {v.title && (
+              <span
+                style={{
+                  position: 'absolute', left: 0, right: 0, bottom: 0,
+                  padding: '18px 14px 10px', textAlign: 'left', fontSize: 11.5,
+                  color: 'white', background: 'linear-gradient(transparent, oklch(0 0 0 / 0.8))',
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}
+              >
+                {v.title}
+              </span>
+            )}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -13,12 +13,12 @@
     "language": "Idioma"
   },
   "landing": {
-    "badge": "Ensemble de 3 modelos · análise em tempo real",
+    "badge": "Modelos de IA · análise em tempo real",
     "hero_1": "Não é achismo.",
     "hero_2": "É",
-    "hero_accent": "análise estatística",
+    "hero_accent": "análise estatística com IA",
     "hero_3": "em cada jogo.",
-    "hero_body": "Três modelos estatísticos — Dixon-Coles, ELO e regressão Bayesiana — rodando em ensemble calculam a probabilidade real de cada resultado. Destacamos os jogos com",
+    "hero_body": "Modelos de IA — Dixon-Coles, ELO e regressão Bayesiana — rodando em ensemble calculam a probabilidade real de cada resultado. Destacamos os jogos com",
     "hero_ev": "maior confiança",
     "cta_signup": "Criar conta grátis →",
     "cta_signup_discount": "Criar conta com {{discount}}% off →",

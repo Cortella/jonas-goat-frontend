@@ -149,8 +149,8 @@ export function LandingPage() {
   return (
     <div style={{ background: 'var(--bg)', color: 'var(--text)', overflowX: 'hidden' }}>
       <Seo
-        title="Jonas Goat — Previsões de futebol com modelos estatísticos"
-        description="Três modelos estatísticos em ensemble calculam a probabilidade real de cada jogo. Análise transparente das Top 5 ligas, Champions e Copa do Mundo 2026. Sem achismo, sem hype."
+        title="Jonas Goat — Previsões de futebol com IA e modelos estatísticos"
+        description="Modelos de IA em ensemble calculam a probabilidade real de cada jogo. Análise transparente das Top 5 ligas, Champions e Copa do Mundo 2026. Sem achismo, sem hype."
         path="/"
         schema={faqSchema}
       />
@@ -307,6 +307,32 @@ export function LandingPage() {
           </div>
 
           <LivePreviewCard preds={live} loading={predsQ.isLoading} signupHref={signupHref} />
+        </div>
+      </section>
+
+      {/* ─── Novas ligas em 10/07 ─────────────────────────────────── */}
+      <section style={{ borderTop: '1px solid var(--line)', background: 'var(--bg-2)' }}>
+        <div
+          className="landing-section"
+          style={{
+            paddingTop: 22,
+            paddingBottom: 22,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 18,
+            flexWrap: 'wrap',
+          }}
+        >
+          <span className="tag tag-warn" style={{ flexShrink: 0 }}>10 DE JULHO</span>
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <strong style={{ fontSize: 14 }}>🇧🇷 Brasileirão e novas ligas chegando.</strong>{' '}
+            <span style={{ fontSize: 13, color: 'var(--text-2)' }}>
+              No dia 10/07 liberamos as previsões com IA para o Brasileirão e mais ligas — mesma análise da Copa, jogo a jogo.
+            </span>
+          </div>
+          <Link to="/precos" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none', flexShrink: 0 }}>
+            Garantir acesso →
+          </Link>
         </div>
       </section>
 

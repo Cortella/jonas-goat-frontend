@@ -858,6 +858,15 @@ export interface WCAnalysis {
   narrative: string;
 }
 
+/** Vídeo da CazéTV para um jogo (transmissão ao vivo ou melhores momentos). */
+export interface WCMatchVideo {
+  video_id: string | null;
+  title: string | null;
+  kind: 'live' | 'highlights';
+  embed_url: string | null;
+  search_url: string;
+}
+
 /** Vitrine pública da landing: jogo encerrado do Brasil com a melhor previsão. */
 export interface WCShowcase {
   has_data: boolean;
@@ -1099,6 +1108,7 @@ export const api = {
   worldCupAnalysis: (id: number) => get<WCAnalysis>(`/api/world-cup/matches/${id}`),
   worldCupCountries: () => get<WCCountries>('/api/world-cup/countries'),
   worldCupShowcase: () => get<WCShowcase>('/api/world-cup/destaque-brasil'),
+  worldCupMatchVideo: (id: number) => get<WCMatchVideo>(`/api/world-cup/matches/${id}/video`),
 
   // moeda do usuário
   getMyCurrency: () => get<{ currency: string | null; detected: string }>('/api/me/currency'),

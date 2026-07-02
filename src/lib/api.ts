@@ -772,6 +772,18 @@ export interface WCTeamForm {
   rank: number | null;
   fair_odds: number | null;
 }
+/** Estatísticas reais de um time em um jogo (escanteios, finalizações…). */
+export interface WCTeamMatchStats {
+  corners: number | null;
+  shots: number | null;
+  shots_on: number | null;
+  possession: number | null;
+  yellow: number | null;
+  red: number | null;
+  fouls: number | null;
+  offsides: number | null;
+}
+
 export interface WCAnalysis {
   match: WCMatch;
   /** true quando o usuário (grátis/anônimo) não tem acesso — valores embaçados. */
@@ -793,6 +805,47 @@ export interface WCAnalysis {
     dc_12: number;
     dc_x2: number;
   };
+  /** Mercados extras de gols (mesmo grid Poisson). null quando locked. */
+  goals_plus?: {
+    over_4_5: number;
+    under_4_5: number;
+    dnb_home: number;
+    dnb_away: number;
+    clean_sheet_home: number;
+    clean_sheet_away: number;
+    win_by_2_home: number;
+    win_by_2_away: number;
+    top_scores: Array<{ score: string; p: number }>;
+  } | null;
+  /** Escanteios a partir das estatísticas reais do torneio. null quando locked. */
+  corners?: {
+    expected_home: number;
+    expected_away: number;
+    expected_total: number;
+    over_7_5: number;
+    over_8_5: number;
+    over_9_5: number;
+    over_10_5: number;
+    under_8_5: number;
+    under_9_5: number;
+    under_10_5: number;
+  } | null;
+  cards?: {
+    expected_total: number;
+    over_3_5: number;
+    over_4_5: number;
+    under_3_5: number;
+    under_4_5: number;
+  } | null;
+  shots?: {
+    home: number;
+    away: number;
+    on_target_home: number;
+    on_target_away: number;
+  } | null;
+  stat_samples?: { home: number; away: number };
+  /** Estatísticas reais DESTE jogo (encerrado/ao vivo) — sempre públicas. */
+  match_stats?: { home: WCTeamMatchStats; away: WCTeamMatchStats } | null;
   strength: { home: WCTeamForm; away: WCTeamForm };
   h2h: {
     total: number;

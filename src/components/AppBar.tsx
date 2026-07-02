@@ -16,6 +16,44 @@ const ITEMS: NavItem[] = [
   { to: '/founders', label: 'Founders' },
 ];
 
+/** Aba desabilitada para produto que ainda vem aí (ex.: Brasileirão). */
+function ComingSoonTab({ label }: Readonly<{ label: string }>) {
+  return (
+    <span
+      title={`${label} — em breve`}
+      style={{
+        padding: '7px 10px',
+        borderRadius: 8,
+        fontSize: 12,
+        fontWeight: 500,
+        color: 'var(--muted)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        cursor: 'default',
+        userSelect: 'none',
+      }}
+    >
+      {label}
+      <span
+        style={{
+          fontSize: 8.5,
+          fontWeight: 700,
+          letterSpacing: '0.05em',
+          textTransform: 'uppercase',
+          color: 'var(--warn)',
+          background: 'oklch(0.82 0.15 80 / 0.12)',
+          border: '1px solid oklch(0.82 0.15 80 / 0.3)',
+          borderRadius: 4,
+          padding: '2px 5px',
+        }}
+      >
+        em breve
+      </span>
+    </span>
+  );
+}
+
 export function AppBar() {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
@@ -98,6 +136,7 @@ export function AppBar() {
             </NavLink>
           );
         })}
+        <ComingSoonTab label="Brasileirão" />
         {user?.is_admin && (
           <NavLink
             to="/admin"

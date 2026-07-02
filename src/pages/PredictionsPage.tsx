@@ -31,10 +31,14 @@ const GRID_COLS = '60px 1fr 200px 140px 60px 80px';
 export function PredictionsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const canSee = !!user && (user.plan === 'pro' || user.plan === 'founders');
   const [params, setParams] = useSearchParams();
   const date = params.get('date') || todayIso();
   const league = params.get('league') || undefined;
+  const isPro = !!user && (user.plan === 'pro' || user.plan === 'founders');
+  // Datas passadas (jogos já encerrados) são abertas para todos — vitrine
+  // pública do modelo. Hoje/futuro segue exclusivo do Pro/Founders.
+  const isPastDate = date < todayIso();
+  const canSee = isPro || isPastDate;
 
   const q = useQuery({
     queryKey: ['predictions', date, league],
@@ -101,6 +105,17 @@ export function PredictionsPage() {
               Ir para a carteira
             </Link>
           </div>
+          <p style={{ marginTop: 20, fontSize: 13, color: 'var(--muted)' }}>
+            Quer ver como o modelo se saiu?{' '}
+            <button
+              type="button"
+              onClick={() => setDate(shiftDate(todayIso(), -1))}
+              style={{ background: 'none', border: 'none', padding: 0, color: 'var(--edge)', cursor: 'pointer', fontSize: 13, textDecoration: 'underline' }}
+            >
+              Veja as previsões de ontem
+            </button>{' '}
+            — jogos já encerrados são abertos para todos.
+          </p>
         </div>
       </div>
     );
@@ -154,6 +169,28 @@ export function PredictionsPage() {
           }
         />
       </div>
+
+      {!isPro && (
+        <div style={{ padding: '0 32px 16px', maxWidth: 1280, margin: '0 auto' }}>
+          <div
+            className="surface"
+            style={{
+              padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10,
+              flexWrap: 'wrap', fontSize: 13, color: 'var(--text-2)',
+              borderColor: 'oklch(0.88 0.17 125 / 0.35)', background: 'var(--edge-soft)',
+            }}
+          >
+            <span aria-hidden>🔓</span>
+            <span style={{ flex: 1, minWidth: 200 }}>
+              Jogos já encerrados são abertos para todos — veja como o modelo se saiu.
+              As previsões de <strong>hoje e dos próximos jogos</strong> são exclusivas do Pro.
+            </span>
+            <Link to={user ? '/checkout?plan=pro&cycle=monthly' : '/signup'} className="btn btn-edge btn-sm" style={{ textDecoration: 'none' }}>
+              Assinar Pro
+            </Link>
+          </div>
+        </div>
+      )}
 
       <GameSuggestions />
 

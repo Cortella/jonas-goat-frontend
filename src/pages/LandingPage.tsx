@@ -175,6 +175,25 @@ export function LandingPage() {
           <Logo size={20} />
         </Link>
         <nav style={{ display: 'flex', gap: 2, marginLeft: 20, alignItems: 'center' }}>
+          <NavItem to="/copa-2026">🏆 Copa 2026</NavItem>
+          <span
+            title="Brasileirão — em breve"
+            style={{
+              padding: '7px 12px', fontSize: 13, fontWeight: 500, color: 'var(--muted)',
+              display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'default', userSelect: 'none', whiteSpace: 'nowrap',
+            }}
+          >
+            Brasileirão
+            <span
+              style={{
+                fontSize: 8.5, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+                color: 'var(--warn)', background: 'oklch(0.82 0.15 80 / 0.12)',
+                border: '1px solid oklch(0.82 0.15 80 / 0.3)', borderRadius: 4, padding: '2px 5px',
+              }}
+            >
+              em breve
+            </span>
+          </span>
           <NavItem href="#como-funciona">{t('landing.nav_how')}</NavItem>
           <NavItem to="/metodologia">{t('landing.nav_methodology')}</NavItem>
           <NavItem to="/gratis">Grátis</NavItem>
@@ -745,11 +764,9 @@ function LivePreviewCard({
           {t('landing.live_loading')}
         </div>
       )}
-      {!loading && preds.length === 0 && (
-        <div style={{ padding: 32, color: 'var(--muted)', fontSize: 13 }}>
-          {t('landing.live_empty')}
-        </div>
-      )}
+      {/* Sem jogos de liga hoje → mostra o mata-mata da Copa no lugar de um
+          estado vazio (a Copa sempre tem conteúdo durante o torneio). */}
+      {!loading && preds.length === 0 && <WCKnockoutPreview />}
       {preds.map((p, i) => {
         const probHome = (p.ensemble.prob_home ?? 0) * 100;
         const probDraw = (p.ensemble.prob_draw ?? 0) * 100;
@@ -819,6 +836,82 @@ function LivePreviewCard({
           {t('landing.live_cta')}
         </Link>
       </div>
+    </div>
+  );
+}
+
+/** Próximos confrontos do mata-mata da Copa dentro do card do hero — usado
+ *  quando não há previsão de liga no dia. Cai para os últimos encerrados e,
+ *  em último caso, para o texto de vazio original. */
+function WCKnockoutPreview() {
+  const { t } = useTranslation();
+  const q = useQuery({
+    queryKey: ['wc-matches-hero'],
+    queryFn: () => api.worldCupMatches(),
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const all = (q.data?.knockout ?? []).flatMap((r) => r.matches);
+  const named = all.filter((m) => m.home.name && m.away.name && m.home.id > 0 && m.away.id > 0);
+  const upcoming = named
+    .filter((m) => m.status.phase !== 'finished')
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .slice(0, 4);
+  const shown = upcoming.length > 0
+    ? upcoming
+    : named.filter((m) => m.status.phase === 'finished').sort((a, b) => b.timestamp - a.timestamp).slice(0, 4);
+
+  if (q.isLoading) {
+    return <div style={{ padding: 32, color: 'var(--muted)', fontSize: 13 }}>{t('landing.live_loading')}</div>;
+  }
+  if (shown.length === 0) {
+    return <div style={{ padding: 32, color: 'var(--muted)', fontSize: 13 }}>{t('landing.live_empty')}</div>;
+  }
+
+  return (
+    <div>
+      <div style={{ padding: '10px 16px 4px', fontSize: 11, color: 'var(--edge)', fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        🏆 {t('landing.hero_wc', 'Mata-mata da Copa 2026')}
+      </div>
+      {shown.map((m2, i) => {
+        const live = m2.status.phase === 'live';
+        const finished = m2.status.phase === 'finished';
+        return (
+          <Link
+            key={m2.id}
+            to="/copa-2026"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '64px 1fr auto',
+              gap: 10,
+              alignItems: 'center',
+              padding: '11px 16px',
+              borderBottom: i < shown.length - 1 ? '1px solid var(--line)' : 'none',
+              textDecoration: 'none',
+              color: 'var(--text)',
+            }}
+          >
+            <span style={{ fontSize: 11, fontFamily: 'var(--mono)', color: live ? 'var(--loss)' : 'var(--muted)' }}>
+              {live
+                ? `● ${m2.status.elapsed ?? ''}'`
+                : finished
+                  ? 'Encerrado'
+                  : new Date(m2.date).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minWidth: 0, fontSize: 13 }}>
+              <TeamLogo name={m2.home.name} logo={m2.home.logo} size={17} />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m2.home.name}</span>
+              <span style={{ color: 'var(--muted)', fontSize: 11 }}>×</span>
+              <TeamLogo name={m2.away.name} logo={m2.away.logo} size={17} />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m2.away.name}</span>
+            </span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600, color: live ? 'var(--loss)' : 'var(--text-2)' }}>
+              {m2.home.goals != null && m2.away.goals != null ? `${m2.home.goals} : ${m2.away.goals}` : '›'}
+            </span>
+          </Link>
+        );
+      })}
     </div>
   );
 }

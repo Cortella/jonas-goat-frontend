@@ -12,6 +12,7 @@ import {
   type WCStanding,
   type WCAnalysis,
   type WCCountry,
+  type WCTeamMatchStats,
 } from '../lib/api';
 
 export function WorldCupPage() {
@@ -556,6 +557,14 @@ function ModalBody({ a }: Readonly<{ a: WCAnalysis }>) {
         </div>
       </div>
 
+      {/* Estatísticas reais do jogo (encerrado/ao vivo) — públicas, fora do
+          paywall: escanteios, finalizações, posse, cartões. */}
+      {a.match_stats && (
+        <div style={{ padding: '22px 22px 0' }}>
+          <MatchStatsSection stats={a.match_stats} home={m.home.name} away={m.away.name} />
+        </div>
+      )}
+
       <div style={{ padding: 22, position: 'relative' }}>
         {a.locked && <LockedOverlay />}
         <div
@@ -594,6 +603,81 @@ function ModalBody({ a }: Readonly<{ a: WCAnalysis }>) {
         <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>
           Probabilidades do modelo + odd justa (1/prob). Se a odd da casa for maior que a justa, há valor.
         </p>
+
+        {/* Mercados extras de gols */}
+        {a.goals_plus && (
+          <>
+            <div className="t-eyebrow" style={{ marginTop: 24, marginBottom: 10 }}>Mais mercados de gols</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+              <MarketRow label="Mais de 4.5 gols" p={a.goals_plus.over_4_5} />
+              <MarketRow label="Menos de 4.5 gols" p={a.goals_plus.under_4_5} />
+              <MarketRow label={`${m.home.name} — empate anulado`} p={a.goals_plus.dnb_home} />
+              <MarketRow label={`${m.away.name} — empate anulado`} p={a.goals_plus.dnb_away} />
+              <MarketRow label={`${m.home.name} sem sofrer gol`} p={a.goals_plus.clean_sheet_home} />
+              <MarketRow label={`${m.away.name} sem sofrer gol`} p={a.goals_plus.clean_sheet_away} />
+              <MarketRow label={`${m.home.name} vence por 2+`} p={a.goals_plus.win_by_2_home} />
+              <MarketRow label={`${m.away.name} vence por 2+`} p={a.goals_plus.win_by_2_away} />
+            </div>
+            {a.goals_plus.top_scores.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                <span style={{ fontSize: 11, color: 'var(--muted)', alignSelf: 'center' }}>Placares mais prováveis:</span>
+                {a.goals_plus.top_scores.map((s) => (
+                  <span key={s.score} className="tag" style={{ fontFamily: 'var(--mono)' }}>
+                    {s.score.replace('-', ' : ')} · {s.p}%
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Escanteios (estatísticas reais do torneio) */}
+        {a.corners && (
+          <>
+            <div className="t-eyebrow" style={{ marginTop: 24, marginBottom: 10 }}>
+              Escanteios · esperado {a.corners.expected_total} ({a.corners.expected_home} x {a.corners.expected_away})
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+              <MarketRow label="Mais de 8.5 escanteios" p={a.corners.over_8_5} />
+              <MarketRow label="Menos de 8.5 escanteios" p={a.corners.under_8_5} />
+              <MarketRow label="Mais de 9.5 escanteios" p={a.corners.over_9_5} />
+              <MarketRow label="Menos de 9.5 escanteios" p={a.corners.under_9_5} />
+              <MarketRow label="Mais de 10.5 escanteios" p={a.corners.over_10_5} />
+              <MarketRow label="Menos de 10.5 escanteios" p={a.corners.under_10_5} />
+            </div>
+          </>
+        )}
+
+        {/* Cartões */}
+        {a.cards && (
+          <>
+            <div className="t-eyebrow" style={{ marginTop: 24, marginBottom: 10 }}>
+              Cartões · esperado {a.cards.expected_total} no jogo
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+              <MarketRow label="Mais de 3.5 cartões" p={a.cards.over_3_5} />
+              <MarketRow label="Menos de 3.5 cartões" p={a.cards.under_3_5} />
+              <MarketRow label="Mais de 4.5 cartões" p={a.cards.over_4_5} />
+              <MarketRow label="Menos de 4.5 cartões" p={a.cards.under_4_5} />
+            </div>
+          </>
+        )}
+
+        {/* Volume esperado de finalizações */}
+        {a.shots && (
+          <>
+            <div className="t-eyebrow" style={{ marginTop: 24, marginBottom: 10 }}>Finalizações esperadas</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+              <Metric label="Finalizações" value={`${a.shots.home} – ${a.shots.away}`} />
+              <Metric label="No alvo" value={`${a.shots.on_target_home} – ${a.shots.on_target_away}`} />
+            </div>
+            {a.stat_samples && (a.stat_samples.home > 0 || a.stat_samples.away > 0) && (
+              <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 6 }}>
+                Base: estatísticas reais de {a.stat_samples.home + a.stat_samples.away} jogos das duas seleções no torneio.
+              </p>
+            )}
+          </>
+        )}
 
         {/* Palpite de valor */}
         <div
@@ -644,6 +728,64 @@ function ModalBody({ a }: Readonly<{ a: WCAnalysis }>) {
         </div>
       </div>
     </>
+  );
+}
+
+/** Comparativo das estatísticas REAIS do jogo (escanteios, finalizações,
+ *  posse, cartões…) com barras espelhadas a partir do centro. */
+function MatchStatsSection({
+  stats,
+  home,
+  away,
+}: Readonly<{ stats: NonNullable<WCAnalysis['match_stats']>; home: string; away: string }>) {
+  const ROWS: Array<{ key: keyof WCTeamMatchStats; label: string; pct?: boolean }> = [
+    { key: 'possession', label: 'Posse de bola', pct: true },
+    { key: 'shots', label: 'Finalizações' },
+    { key: 'shots_on', label: 'No alvo' },
+    { key: 'corners', label: 'Escanteios' },
+    { key: 'fouls', label: 'Faltas' },
+    { key: 'offsides', label: 'Impedimentos' },
+    { key: 'yellow', label: 'Cartões amarelos' },
+    { key: 'red', label: 'Cartões vermelhos' },
+  ];
+  const rows = ROWS.filter((r) => stats.home[r.key] != null || stats.away[r.key] != null);
+  if (rows.length === 0) return null;
+
+  return (
+    <div>
+      <div className="t-eyebrow" style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
+        <span>Estatísticas do jogo</span>
+        <span style={{ display: 'inline-flex', gap: 12 }}>
+          <span>{home.slice(0, 3).toUpperCase()}</span>
+          <span>{away.slice(0, 3).toUpperCase()}</span>
+        </span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {rows.map((r) => {
+          const h = stats.home[r.key] ?? 0;
+          const a2 = stats.away[r.key] ?? 0;
+          const total = h + a2;
+          const hw = total > 0 ? (h / total) * 100 : 50;
+          return (
+            <div key={r.key} style={{ padding: '7px 0', borderBottom: '1px solid var(--line)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 40px', gap: 10, alignItems: 'center', fontSize: 12 }}>
+                <span style={{ fontFamily: 'var(--mono)', fontWeight: h >= a2 ? 700 : 400 }}>
+                  {h}{r.pct ? '%' : ''}
+                </span>
+                <span style={{ textAlign: 'center', color: 'var(--text-2)', fontSize: 11 }}>{r.label}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontWeight: a2 >= h ? 700 : 400, textAlign: 'right' }}>
+                  {a2}{r.pct ? '%' : ''}
+                </span>
+              </div>
+              <div style={{ display: 'flex', height: 4, borderRadius: 999, overflow: 'hidden', background: 'var(--bg-2)', marginTop: 4 }}>
+                <span style={{ width: `${hw}%`, background: 'var(--edge)', opacity: h >= a2 ? 1 : 0.35 }} />
+                <span style={{ flex: 1, background: 'var(--text-2)', opacity: a2 > h ? 0.9 : 0.25 }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

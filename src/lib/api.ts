@@ -846,6 +846,13 @@ export interface WCAnalysis {
     on_target_away: number;
   } | null;
   stat_samples?: { home: number; away: number };
+  /** Mercados de mata-mata (prorrogação/pênaltis). null em jogo de grupo ou locked. */
+  knockout_markets?: {
+    extra_time: number;
+    penalties: number;
+    advance_home: number;
+    advance_away: number;
+  } | null;
   /** Estatísticas reais DESTE jogo (encerrado/ao vivo) — sempre públicas. */
   match_stats?: { home: WCTeamMatchStats; away: WCTeamMatchStats } | null;
   strength: { home: WCTeamForm; away: WCTeamForm };

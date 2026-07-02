@@ -499,7 +499,7 @@ function MatchModal({ id, onClose }: Readonly<{ id: number; onClose: () => void 
       <div
         onClick={(e) => e.stopPropagation()}
         className="surface"
-        style={{ width: '100%', maxWidth: 560, padding: 0, overflow: 'hidden', position: 'relative' }}
+        style={{ width: '100%', maxWidth: 760, padding: 0, overflow: 'hidden', position: 'relative' }}
       >
         <button
           type="button"
@@ -556,10 +556,6 @@ function ModalBody({ a }: Readonly<{ a: WCAnalysis }>) {
           </div>
         </div>
       </div>
-
-      {/* Vídeo da CazéTV: transmissão ao vivo ou melhores momentos, dentro da
-          plataforma (embed do YouTube — a CazéTV passa todos os jogos grátis). */}
-      <CazeTvSection match={m} />
 
       {/* Estatísticas reais do jogo (encerrado/ao vivo) — públicas, fora do
           paywall: escanteios, finalizações, posse, cartões. */}
@@ -667,6 +663,21 @@ function ModalBody({ a }: Readonly<{ a: WCAnalysis }>) {
           </>
         )}
 
+        {/* Mata-mata: prorrogação e pênaltis */}
+        {a.knockout_markets && (
+          <>
+            <div className="t-eyebrow" style={{ marginTop: 24, marginBottom: 10 }}>
+              Prorrogação e pênaltis
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+              <MarketRow label="Vai para a prorrogação" p={a.knockout_markets.extra_time} />
+              <MarketRow label="Decisão nos pênaltis" p={a.knockout_markets.penalties} />
+              <MarketRow label={`${m.home.name} avança`} p={a.knockout_markets.advance_home} />
+              <MarketRow label={`${m.away.name} avança`} p={a.knockout_markets.advance_away} />
+            </div>
+          </>
+        )}
+
         {/* Volume esperado de finalizações */}
         {a.shots && (
           <>
@@ -731,13 +742,109 @@ function ModalBody({ a }: Readonly<{ a: WCAnalysis }>) {
         </p>
         </div>
       </div>
+
+      {/* Vídeo da CazéTV no fim do modal: thumb compacta que, ao clicar,
+          renderiza o player dentro da própria plataforma. */}
+      <CazeTvSection match={m} />
     </>
   );
 }
 
-/** Player da CazéTV embutido: ao vivo (jogo em andamento/por vir) ou melhores
- *  momentos (encerrado). Clique-para-carregar: mostra a thumbnail e só monta o
- *  iframe do YouTube quando o usuário dá play (modal continua leve). */
+// ─── Player da CazéTV ───────────────────────────────────────────────────────
+
+/** Carrega a IFrame API do YouTube uma única vez. */
+let ytApiPromise: Promise<unknown> | null = null;
+function loadYouTubeApi(): Promise<unknown> {
+  ytApiPromise ??= new Promise((resolve) => {
+    const w = window as unknown as { YT?: { Player?: unknown }; onYouTubeIframeAPIReady?: () => void };
+    if (w.YT?.Player) {
+      resolve(w.YT);
+      return;
+    }
+    const prev = w.onYouTubeIframeAPIReady;
+    w.onYouTubeIframeAPIReady = () => {
+      prev?.();
+      resolve(w.YT);
+    };
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(s);
+  });
+  return ytApiPromise;
+}
+
+/**
+ * Alguns donos de conteúdo (ex.: LiveMode/CazéTV em vídeos de jogo) BLOQUEIAM
+ * a exibição fora do YouTube — o embed carrega mas mostra "Vídeo indisponível".
+ * Isso só é detectável no player: um player oculto e mudo tenta reproduzir; se
+ * vier onError (101/150 = embed proibido), escondemos a seção inteira.
+ * Resultado fica em sessionStorage para não repetir o teste.
+ */
+function useEmbeddable(videoId: string | null | undefined): 'checking' | 'ok' | 'blocked' {
+  const [state, setState] = useState<'checking' | 'ok' | 'blocked'>('checking');
+  useEffect(() => {
+    if (!videoId) return;
+    const cacheKey = `jg_yt_embed_${videoId}`;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached === 'ok' || cached === 'blocked') {
+        setState(cached);
+        return;
+      }
+    } catch { /* ignore */ }
+
+    let cancelled = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let player: any;
+    const host = document.createElement('div');
+    host.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;overflow:hidden;';
+    document.body.appendChild(host);
+    const finish = (result: 'ok' | 'blocked') => {
+      if (!cancelled) {
+        try { sessionStorage.setItem(cacheKey, result); } catch { /* ignore */ }
+        setState(result);
+      }
+      try { player?.destroy?.(); } catch { /* ignore */ }
+      host.remove();
+    };
+    // Fail-closed: só mostramos o player quando a reprodução for CONFIRMADA
+    // (evento PLAYING). Erro ou silêncio dentro do prazo → seção escondida —
+    // nunca um "Vídeo indisponível" na cara do usuário.
+    const timer = setTimeout(() => finish('blocked'), 8000);
+
+    loadYouTubeApi().then((YT) => {
+      if (cancelled) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      player = new (YT as any).Player(host, {
+        width: 2,
+        height: 2,
+        videoId,
+        playerVars: { mute: 1 },
+        events: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onReady: (e: any) => { try { e.target.mute(); e.target.playVideo(); } catch { /* ignore */ } },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onStateChange: (e: any) => { if (e.data === 1) { clearTimeout(timer); finish('ok'); } },
+          onError: () => { clearTimeout(timer); finish('blocked'); },
+        },
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      try { player?.destroy?.(); } catch { /* ignore */ }
+      host.remove();
+    };
+  }, [videoId]);
+  return state;
+}
+
+/** Vídeo da CazéTV no rodapé do modal: uma linha compacta com a thumbnail do
+ *  próprio vídeo ("Assista aos melhores momentos" / "Assista ao vivo") que, ao
+ *  clicar, expande e renderiza o player DENTRO da plataforma. Sem vídeo
+ *  localizado — ou com embed bloqueado pelo dono do conteúdo — não renderiza
+ *  nada (nenhum link externo). */
 function CazeTvSection({ match }: Readonly<{ match: WCMatch }>) {
   const q = useQuery({
     queryKey: ['wc-video', match.id],
@@ -747,42 +854,19 @@ function CazeTvSection({ match }: Readonly<{ match: WCMatch }>) {
   });
   const [playing, setPlaying] = useState(false);
   const v = q.data;
-  if (!v) return null;
+  const embeddable = useEmbeddable(v?.video_id);
+  if (!v?.video_id || embeddable !== 'ok') return null;
 
   const live = v.kind === 'live';
-  const label = live ? 'Assista ao vivo · CazéTV (grátis)' : 'Melhores momentos · CazéTV';
+  const label = live ? 'Assista ao vivo na CazéTV' : 'Assista aos melhores momentos';
 
-  if (!v.video_id) {
-    // Sem vídeo localizado: para jogo futuro não mostra nada; encerrado/ao
-    // vivo oferece a busca direta no YouTube como fallback.
-    if (match.status.phase === 'upcoming') return null;
+  if (playing) {
     return (
-      <a
-        href={v.search_url}
-        target="_blank"
-        rel="noreferrer"
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '12px 22px', borderBottom: '1px solid var(--line)',
-          fontSize: 12, color: 'var(--text-2)', textDecoration: 'none',
-        }}
-      >
-        <span aria-hidden>▶</span> {label} — buscar no YouTube ↗
-      </a>
-    );
-  }
-
-  return (
-    <div style={{ borderBottom: '1px solid var(--line)' }}>
-      <div
-        className="t-eyebrow"
-        style={{ padding: '14px 22px 10px', display: 'flex', alignItems: 'center', gap: 8 }}
-      >
-        <span style={{ color: live ? 'var(--loss)' : undefined }} aria-hidden>▶</span>
-        <span style={{ color: live ? 'var(--loss)' : undefined }}>{label}</span>
-      </div>
-      <div style={{ position: 'relative', aspectRatio: '16 / 9', background: 'oklch(0.1 0 0)' }}>
-        {playing ? (
+      <div style={{ borderTop: '1px solid var(--line)' }}>
+        <div className="t-eyebrow" style={{ padding: '12px 22px 10px', color: live ? 'var(--loss)' : undefined }}>
+          ▶ {label} · CazéTV
+        </div>
+        <div style={{ position: 'relative', aspectRatio: '16 / 9', background: 'oklch(0.1 0 0)' }}>
           <iframe
             src={`${v.embed_url}?autoplay=1`}
             title={v.title ?? 'CazéTV'}
@@ -790,48 +874,62 @@ function CazeTvSection({ match }: Readonly<{ match: WCMatch }>) {
             allowFullScreen
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
           />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setPlaying(true)}
-            aria-label={`Reproduzir: ${v.title ?? label}`}
-            style={{
-              position: 'absolute', inset: 0, width: '100%', height: '100%',
-              padding: 0, border: 'none', cursor: 'pointer', background: 'transparent',
-            }}
-          >
-            <img
-              src={`https://i.ytimg.com/vi/${v.video_id}/hqdefault.jpg`}
-              alt={v.title ?? label}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: 0.85 }}
-            />
-            <span
-              style={{
-                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                width: 58, height: 42, borderRadius: 12,
-                background: 'oklch(0.55 0.22 25 / 0.92)', color: 'white',
-                display: 'grid', placeItems: 'center', fontSize: 18,
-              }}
-              aria-hidden
-            >
-              ▶
-            </span>
-            {v.title && (
-              <span
-                style={{
-                  position: 'absolute', left: 0, right: 0, bottom: 0,
-                  padding: '18px 14px 10px', textAlign: 'left', fontSize: 11.5,
-                  color: 'white', background: 'linear-gradient(transparent, oklch(0 0 0 / 0.8))',
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}
-              >
-                {v.title}
-              </span>
-            )}
-          </button>
-        )}
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setPlaying(true)}
+      aria-label={`Reproduzir: ${v.title ?? label}`}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 14, width: '100%',
+        padding: '14px 22px', border: 'none', borderTop: '1px solid var(--line)',
+        background: 'var(--bg-2)', cursor: 'pointer', textAlign: 'left', color: 'var(--text)',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
+    >
+      <span
+        style={{
+          position: 'relative', width: 118, height: 66, flexShrink: 0,
+          borderRadius: 8, overflow: 'hidden', display: 'block', background: 'oklch(0.1 0 0)',
+        }}
+      >
+        <img
+          src={`https://i.ytimg.com/vi/${v.video_id}/mqdefault.jpg`}
+          alt=""
+          aria-hidden
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+        <span
+          style={{
+            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            width: 34, height: 24, borderRadius: 6,
+            background: 'oklch(0.55 0.22 25 / 0.92)', color: 'white',
+            display: 'grid', placeItems: 'center', fontSize: 11,
+          }}
+          aria-hidden
+        >
+          ▶
+        </span>
+      </span>
+      <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <strong style={{ fontSize: 14, color: live ? 'var(--loss)' : undefined }}>
+          {live && <span aria-hidden>● </span>}{label}
+        </strong>
+        <span
+          style={{
+            fontSize: 11.5, color: 'var(--muted)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}
+        >
+          {v.title ?? 'CazéTV'} · grátis, sem sair da plataforma
+        </span>
+      </span>
+    </button>
   );
 }
 

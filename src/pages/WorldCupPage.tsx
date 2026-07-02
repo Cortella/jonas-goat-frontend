@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { AppBar } from '../components/AppBar';
 import { SectionHeader, Stat } from '../components/atoms';
+import { KnockoutBracket, TeamLogo, formatKickoff, roundLabel } from '../components/WorldCupKnockout';
 import {
   api,
   type WCMatches,
@@ -186,12 +187,21 @@ function WorldCupBody({ data, onOpen }: Readonly<{ data: WCMatches; onOpen: (id:
   const [selected, setSelected] = useState<string | null>(null);
   const visible = selected ? data.groups.filter((g) => g.group === selected) : data.groups;
 
+  // O mata-mata vira a visão padrão assim que existem confrontos eliminatórios.
+  const hasKnockout = data.knockout.some((r) => r.matches.length > 0);
+  const [view, setView] = useState<'knockout' | 'groups'>(hasKnockout ? 'knockout' : 'groups');
+  const knockoutLive = data.knockout.some((r) => r.matches.some((m) => m.status.phase === 'live'));
+
   return (
     <div>
       <SectionHeader
         eyebrow={`${data.tournament} · Temporada ${data.season}`}
-        title="Todos os jogos, por grupo"
-        sub="Classificação ao vivo e calendário completo. Clique em qualquer jogo para abrir a análise."
+        title={view === 'knockout' ? 'Mata-mata — o caminho até a taça' : 'Todos os jogos, por grupo'}
+        sub={
+          view === 'knockout'
+            ? 'Chaveamento completo da fase eliminatória. Clique em qualquer confronto para abrir a análise do modelo.'
+            : 'Classificação ao vivo e calendário completo. Clique em qualquer jogo para abrir a análise.'
+        }
       />
 
       {/* KPIs */}
@@ -210,22 +220,69 @@ function WorldCupBody({ data, onOpen }: Readonly<{ data: WCMatches; onOpen: (id:
         </div>
       </div>
 
-      {/* Filtro de grupos */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
-        <Chip active={!selected} onClick={() => setSelected(null)}>Todos</Chip>
-        {groupKeys.map((g) => (
-          <Chip key={g} active={selected === g} onClick={() => setSelected(g)}>
-            Grupo {g}
-          </Chip>
-        ))}
+      {/* Alternador de visão: mata-mata × fase de grupos */}
+      <div
+        role="tablist"
+        aria-label="Fase do torneio"
+        style={{
+          display: 'inline-flex', gap: 4, padding: 4, marginBottom: 20,
+          background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10,
+        }}
+      >
+        <ViewTab active={view === 'knockout'} onClick={() => setView('knockout')}>
+          Mata-mata
+          {knockoutLive && <span className="dot dot-pulse" style={{ background: 'var(--loss)', marginLeft: 6 }} />}
+        </ViewTab>
+        <ViewTab active={view === 'groups'} onClick={() => setView('groups')}>
+          Fase de grupos
+        </ViewTab>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {visible.map((g) => (
-          <GroupCard key={g.group} group={g} onOpen={onOpen} />
-        ))}
-      </div>
+      {view === 'knockout' ? (
+        <KnockoutBracket rounds={data.knockout} onOpen={onOpen} />
+      ) : (
+        <>
+          {/* Filtro de grupos */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
+            <Chip active={!selected} onClick={() => setSelected(null)}>Todos</Chip>
+            {groupKeys.map((g) => (
+              <Chip key={g} active={selected === g} onClick={() => setSelected(g)}>
+                Grupo {g}
+              </Chip>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {visible.map((g) => (
+              <GroupCard key={g.group} group={g} onOpen={onOpen} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
+  );
+}
+
+function ViewTab({ active, onClick, children }: Readonly<{ active: boolean; onClick: () => void; children: React.ReactNode }>) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center',
+        padding: '8px 16px', borderRadius: 7, border: '1px solid transparent',
+        background: active ? 'var(--surface)' : 'transparent',
+        borderColor: active ? 'var(--line-2)' : 'transparent',
+        boxShadow: active ? 'var(--shadow-1)' : 'none',
+        color: active ? 'var(--text)' : 'var(--muted)',
+        font: `${active ? 600 : 500} 13px/1 var(--sans)`,
+        cursor: 'pointer', transition: '120ms ease',
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -473,7 +530,7 @@ function ModalBody({ a }: Readonly<{ a: WCAnalysis }>) {
       {/* Cabeçalho do jogo */}
       <div style={{ padding: '22px 22px 18px', borderBottom: '1px solid var(--line)', background: 'var(--bg-2)' }}>
         <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14 }}>
-          {m.group ? `Grupo ${m.group} · ` : ''}{m.round} · {m.venue.city ?? '—'}
+          {m.group ? `Grupo ${m.group} · ` : ''}{roundLabel(m.round)} · {m.venue.city ?? '—'}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 12, alignItems: 'center' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
@@ -677,39 +734,3 @@ function Chip({ active, onClick, children }: Readonly<{ active: boolean; onClick
   );
 }
 
-/** Logo da seleção via CDN da API-Football; cai para iniciais se falhar. */
-function TeamLogo({ name, logo, size = 22 }: Readonly<{ name: string; logo: string; size?: number }>) {
-  const [broken, setBroken] = useState(false);
-  if (broken || !logo) {
-    const initials = (name || 'XX').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
-    return (
-      <span
-        className="crest"
-        style={{ width: size, height: size, fontSize: size * 0.38, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, background: 'var(--surface-2)' }}
-      >
-        {initials}
-      </span>
-    );
-  }
-  return (
-    <img
-      src={logo}
-      alt={name}
-      width={size}
-      height={size}
-      loading="lazy"
-      onError={() => setBroken(true)}
-      style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0 }}
-    />
-  );
-}
-
-function formatKickoff(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString('pt-BR', {
-      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
-}

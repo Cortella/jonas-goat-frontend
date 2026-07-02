@@ -190,6 +190,63 @@ hr.hl { border: 0; border-top: 1px solid var(--line); margin: 0; }
 .wc-group-row:last-child { border-bottom: 0; }
 .wc-group-row:hover { background: var(--surface-2); }
 
+/* ── World Cup knockout bracket (mata-mata) ──────────────────────────────
+   Colunas por fase; conectores desenhados com pseudo-elementos:
+   - .kb-slot--out::after  → traço horizontal do card até o meio do vão
+   - .kb-pair--join::after → traço vertical unindo os dois alimentadores
+   - .kb-slot--in::before  → traço horizontal do meio do vão até o card
+   O alinhamento vertical entre fases sai de graça: cada slot tem flex:1,
+   então um slot das oitavas ocupa a altura de dois dos 16 avos, centrado. */
+.kb-scroll { overflow-x: auto; padding-bottom: 20px; }
+.kb { --kb-gap: 36px; display: flex; align-items: stretch; min-width: max-content; padding-top: 4px; }
+.kb-round { display: flex; flex-direction: column; width: 236px; flex-shrink: 0; }
+.kb-round + .kb-round { margin-left: var(--kb-gap); }
+.kb-round-head { height: 44px; flex-shrink: 0; }
+.kb-col { flex: 1; display: flex; flex-direction: column; }
+.kb-pair { flex: 1; display: flex; flex-direction: column; position: relative; }
+.kb-slot { flex: 1; display: flex; flex-direction: column; justify-content: center; position: relative; padding: 7px 0; }
+.kb-slot--out::after {
+  content: ''; position: absolute; top: 50%;
+  right: calc(var(--kb-gap) / -2); width: calc(var(--kb-gap) / 2);
+  height: 1px; background: var(--line-2);
+}
+.kb-slot--in::before {
+  content: ''; position: absolute; top: 50%;
+  left: calc(var(--kb-gap) / -2); width: calc(var(--kb-gap) / 2);
+  height: 1px; background: var(--line-2);
+}
+.kb-pair--join::after {
+  content: ''; position: absolute; top: 25%; height: 50%;
+  right: calc(var(--kb-gap) / -2); width: 1px; background: var(--line-2);
+}
+
+/* Card de confronto */
+.kb-card {
+  position: relative; z-index: 1; width: 100%; padding: 0; text-align: left;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-2);
+  color: var(--text); cursor: pointer; overflow: hidden;
+  transition: border-color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+}
+.kb-card:hover { border-color: var(--line-2); transform: translateY(-1px); box-shadow: var(--shadow-1); }
+.kb-card--live { border-color: oklch(0.68 0.16 25 / 0.55); }
+.kb-card--live:hover { border-color: oklch(0.68 0.16 25 / 0.8); }
+.kb-card--final { border-color: oklch(0.88 0.17 125 / 0.45); box-shadow: 0 0 0 1px oklch(0.88 0.17 125 / 0.15); }
+.kb-card--final:hover { border-color: oklch(0.88 0.17 125 / 0.7); }
+.kb-meta {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 12px 4px; font: 500 10px/1.2 var(--mono);
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);
+}
+.kb-meta-city { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 45%; text-align: right; }
+.kb-tbd-crest {
+  width: 18px; height: 18px; flex-shrink: 0; border-radius: 4px;
+  border: 1px dashed var(--line-2); background: transparent;
+}
+@media (max-width: 640px) {
+  .kb { --kb-gap: 26px; }
+  .kb-round { width: 212px; }
+}
+
 /* Landing — section spacing utilities + hero accent halo */
 .landing-section { padding: 80px 48px; max-width: 1280px; margin: 0 auto; }
 .landing-section.tight { padding: 56px 48px; }
